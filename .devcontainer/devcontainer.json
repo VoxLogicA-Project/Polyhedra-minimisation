@@ -1,0 +1,31 @@
+{
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "mounts": [    
+    {
+      "type": "bind",
+      "source": "/biggie/",
+      "target": "/biggie"
+    }
+  ],
+  "runArgs": [
+    "--gpus=all",
+    "--device",
+    "nvidia.com/gpu=all",
+    "--userns=keep-id"
+  ],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "Tyriar.luna-paint",
+        "ms-toolsai.jupyter",
+        "ms-azuretools.vscode-docker",
+        "eamodio.gitlens",
+        "ms-python.autopep8",
+      ]
+    }
+  },
+  "shutdownAction": "none"
+}

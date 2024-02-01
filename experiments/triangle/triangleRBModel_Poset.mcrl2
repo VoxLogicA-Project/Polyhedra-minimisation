@@ -1,0 +1,23 @@
+act
+    ap_red,ap_blue,chg,dwn;
+
+proc
+
+t1_0 = 
+    ap_blue.t1_0 + chg.t1_3 + tau.t1_4;
+t1_1 = 
+    tau.t1_5 + ap_blue.t1_1 + chg.t1_3;
+t1_2 = 
+    chg.t1_5 + ap_red.t1_2 + chg.t1_4 + chg.t1_6;
+t1_3 = 
+    ap_red.t1_3 + dwn.t1_0 + dwn.t1_1 + chg.t1_0 + chg.t1_1 + chg.t1_6;
+t1_4 = 
+    dwn.t1_2 + ap_blue.t1_4 + tau.t1_0 + tau.t1_6 + chg.t1_2;
+t1_5 = 
+    dwn.t1_2 + tau.t1_1 + tau.t1_6 + chg.t1_2 + ap_blue.t1_5;
+t1_6 = 
+    dwn.t1_2 + ap_blue.t1_6 + tau.t1_5 + chg.t1_3 + tau.t1_4 + chg.t1_2 + dwn.t1_3;
+
+init
+
+t1_0;
