@@ -5,7 +5,7 @@
 // Code to produce PolyLogicA results in the Atoms.json style for each
 // equivalence class obtained from .lts minimisation via the mcrl2 toolset
 // of an LTS encoding of a polyhedral model.
-
+ 
 // This operation takes two files as input (later three) and produces
 // a single .json file in the Atoms.json format with one result per equivalence
 // class
