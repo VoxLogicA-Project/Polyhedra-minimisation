@@ -7,7 +7,7 @@ RUN add-apt-repository ppa:mcrl2/release-ppa
 RUN apt update
 RUN apt -y install mcrl2
 
-RUN useradd -ms /bin/bash -u 1000 etamin
+RUN useradd -ms /bin/bash -u 999 etamin
 USER etamin
 WORKDIR /workspaces/case-study-eta-minimization
 
