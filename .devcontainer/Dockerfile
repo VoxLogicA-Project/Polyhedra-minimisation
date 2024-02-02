@@ -6,7 +6,8 @@ RUN apt -y install git software-properties-common
 RUN add-apt-repository ppa:mcrl2/release-ppa
 RUN apt update
 RUN apt -y install mcrl2
-RUN apt -y install cmake make
+RUN apt -y install cmake make build-essential
+RUN apt -y install qt6-base-dev libboost-dev
 
 RUN useradd -ms /bin/bash -u 999 etamin
 USER etamin

@@ -11,6 +11,7 @@
         "ms-azuretools.vscode-docker",
         "eamodio.gitlens",
         "ms-python.autopep8",
+        "ms-vscode.cpptools-extension-pack"
       ]
     }
   },
