@@ -94,6 +94,7 @@ def encode(uncovered):
                         
         for atom in uncovered["valuation"][point]:
             tss.add(((tag,point),("ap_"+atom,(tag,point))))
+
     return {   
         "atoms": [ "ap_" + atom for atom in uncovered["atoms"] ] + ["tau","chg","dwn"],
         "states": all,
