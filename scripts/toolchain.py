@@ -7,8 +7,19 @@ import time
 
 #These functions are used to encode a model into an LTS
 
-def compute_elapsed_time(s_time):
-    return time.time_ns() - s_time
+# def compute_elapsed_time(s_time):
+#     return time.time_ns - s_time
+
+
+def init_time():
+    global last_time
+    last_time = time.thread_time()*1000
+
+def update_time():
+    global last_time
+    tmp = last_time
+    last_time = time.thread_time()*1000
+    return last_time - tmp
 
 def uncover(data):
     up = set()
@@ -52,8 +63,6 @@ def relation_to_function(pairs):
 import sys,os
 input_file = sys.argv[1]
 base_name = os.path.splitext(input_file)[0]
-
-start_time = time.time_ns()
 
 with open(f'{input_file}') as f:
     # Load the JSON data into a dictionary
@@ -101,11 +110,14 @@ def encode(uncovered):
         "transitions": list(tss)
     }
 
+init_time()
 
+
+print("encoding...")
 encoded=encode(uncover(data))
+print("encode time:" + str(update_time()))
 
-encode_time = compute_elapsed_time(start_time)
-print("encode time:" + str(encode_time))
+print("converting to mcrl2...")
 
 def name_state(state):
     match state:
@@ -143,9 +155,9 @@ with open(f"{base_name}.mcrl2", "w") as outfile:
         outfile.write(";")
     outfile.write(f"\n\ninit\n\n{name_state(encoded['states'][0])};")    
 
-tomcrl2_time = compute_elapsed_time(encode_time)
-print("To mcrl2 time: " + str(tomcrl2_time))
+print("To mcrl2 time: " + str(update_time()))
 
+print("converting to lps...")
 def run_command(command):
     subprocess.run(command, shell=True)
 
@@ -153,9 +165,8 @@ def run_command(command):
 run_command(f"mcrl22lps --no-alpha --no-cluster --no-constelm --no-deltaelm --no-globvars --no-rewrite --no-sumelm {base_name}.mcrl2 {base_name}.lps")
 run_command(f"lpspp {base_name}.lps {base_name}2.lpspp")
 
-tolps_time = compute_elapsed_time(tomcrl2_time)
-print("To lps time: " + str(tolps_time))
-
+print("To lps time: " + str(update_time()))
+print("finding original states...")
 states = [0 for i in range(0,len(data["points"]))]
 
 # get the correspondence between the original states and the mcrl2 states
@@ -171,23 +182,21 @@ with open(f"{base_name}2.lpspp", "r") as infile:
     # print(states)
 points = len(data["points"])
 
-originalstates_time = compute_elapsed_time(tolps_time)
-print("Get original states time: " + str(originalstates_time))
-
+print("Get original states time: " + str(update_time()))
+print("renaming...")
 # now rename actions into tau and get the clean lps
 run_command(f"lpsactionrename --regex=\"st1_[0-{points}]/tau\" {base_name}.lps {base_name}.lps")
 run_command(f"lpspp {base_name}.lps {base_name}.lpspp")
 
-renametau_time = compute_elapsed_time(originalstates_time)
-print("Renaming time: " + str(renametau_time))
-
+print("Renaming time: " + str(update_time()))
+print("minimising...")
 # transform the lps into an lts and minimise it
 run_command(f"lps2lts {base_name}.lps {base_name}.lts")
-run_command(f"ltsconvert -ebranching-bisim {base_name}.lts {base_name}_minimised.lts")
+print(f"./{base_name}_minimised.lts")
+run_command(f"ltsconvert -ebranching-bisim {base_name}.lts ./{base_name}_minimised.lts")
 
-minimise_time = compute_elapsed_time(renametau_time)
-print("Minimise time: " + str(minimise_time))
-
+print("Minimise time: " + str(update_time()))
+print("converting to visualizer format...")
 # now we get the ltsinfo and the correspondence between classes and original states
 result = subprocess.run(f"ltsinfo -l {base_name}_minimised.lts", stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True) 
 stderr_str = result.stderr
@@ -247,3 +256,5 @@ finals = []
 for i in range(0, len(jsonArrays)):
     with open("jsonOutput" + str(i) + ".json", 'w') as outjson:
         json.dump(jsonArrays[i], outjson, indent=2)
+
+print("Conversion time: " + str(update_time()))
