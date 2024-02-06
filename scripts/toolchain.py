@@ -97,7 +97,7 @@ def encode(uncovered):
                     tss.add(((1,point),(label,(1,dest))))
                     tss.add(((1,dest),(label,(1,point))))
                     tss.add(((1,dest),("dwn",(1,point))))
-                        
+ 
         for atom in uncovered["valuation"][point]:
             tss.add(((tag,point),("ap_"+atom,(tag,point))))
         # add a self loop using the name of the state as an action
@@ -124,7 +124,7 @@ def name_state(state):
     match state:
         case (tag,id):
             return f"t{tag}_{id}"
-    
+
 import itertools
 
 def intersperse(iterable, elem):
