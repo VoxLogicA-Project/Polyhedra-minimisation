@@ -70,15 +70,11 @@ with open(f'{input_file}') as f:
 d = uncover(data)
 
 def encode(uncovered):
-    print("0")
     ss = [(1,p) for p in uncovered["points"]]
     # Mieke added sorting of LTS states in next line  (2023/06/07)  
     all = sorted(ss)
-    print("1")
     tc = transitive_closure(uncovered["up"])    
-    print("2")
     fn = relation_to_function(tc)
-    print("3")
     tss = set()
     
     for (tag,point) in all:                
