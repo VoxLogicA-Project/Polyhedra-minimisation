@@ -151,7 +151,7 @@ def run_command(command):
 
 # generate the lps and get the lps pretty print
 run_command(f"mcrl22lps --no-alpha --no-cluster --no-constelm --no-deltaelm --no-globvars --no-rewrite --no-sumelm {base_name}.mcrl2 {base_name}.lps")
-run_command(f"lpspp {base_name}.lps {base_name}.lpspp")
+run_command(f"lpspp {base_name}.lps {base_name}2.lpspp")
 
 tolps_time = compute_elapsed_time(tomcrl2_time)
 print("To lps time: " + str(tolps_time))
@@ -159,7 +159,7 @@ print("To lps time: " + str(tolps_time))
 states = [0 for i in range(0,len(data["points"]))]
 
 # get the correspondence between the original states and the mcrl2 states
-with open(f"{base_name}.lpspp", "r") as infile:
+with open(f"{base_name}2.lpspp", "r") as infile:
     # print("reading")
     lines = infile.readlines()
     for i in range(0,len(lines)-1):
