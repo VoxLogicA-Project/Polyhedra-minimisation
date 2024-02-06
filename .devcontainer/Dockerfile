@@ -18,11 +18,12 @@ RUN apt -y update
 RUN apt -y dist-upgrade
 RUN apt -y install dotnet-sdk-8.0
 
-
+RUN pip install pandas
+RUN pip install networkx
 
 RUN useradd -ms /bin/bash -u 999 etamin
 USER etamin
-RUN pip install pandas
+
 #WORKDIR /workspaces/case-study-eta-minimization
 WORKDIR /biggie/home/vincenzo/data/local/repos/ImageMinimizationTests
 

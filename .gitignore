@@ -1,2 +1,6 @@
 scripts/class2Atoms/bin
 scripts/class2Atoms/obj
+experiments/triangle/tmp/jsonOutput0.json
+experiments/triangle/tmp/jsonOutput1.json
+experiments/triangle/tmp/jsonOutput2.json
+experiments/triangle/tmp/ltsinfo.txt

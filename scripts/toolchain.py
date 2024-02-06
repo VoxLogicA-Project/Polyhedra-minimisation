@@ -41,15 +41,14 @@ def uncover(data):
         "up": up
     }
 
-def transitive_closure(pairs):
-    closure = set(pairs)
-    while True:
-        new_relations = set((x, w) for x, y in closure for q, w in closure if q == y)
-        closure_until_now = closure | new_relations
-        if closure_until_now == closure:
-            break
-        closure = closure_until_now
-    return closure
+
+import networkx as nx
+
+def transitive_closure(pairs):    
+    dg = nx.DiGraph(pairs)
+    tc = nx.transitive_closure_dag(dg)
+    return tc.edges()
+    
 
 def relation_to_function(pairs):
     res = {}
@@ -71,11 +70,15 @@ with open(f'{input_file}') as f:
 d = uncover(data)
 
 def encode(uncovered):
+    print("0")
     ss = [(1,p) for p in uncovered["points"]]
     # Mieke added sorting of LTS states in next line  (2023/06/07)  
     all = sorted(ss)
+    print("1")
     tc = transitive_closure(uncovered["up"])    
+    print("2")
     fn = relation_to_function(tc)
+    print("3")
     tss = set()
     
     for (tag,point) in all:                
@@ -112,9 +115,11 @@ def encode(uncovered):
 
 init_time()
 
-
+print("parsing...")
+uncovered=uncover(data)
+print("parse time:" + str(update_time()))
 print("encoding...")
-encoded=encode(uncover(data))
+encoded=encode(uncovered)
 print("encode time:" + str(update_time()))
 
 print("converting to mcrl2...")
@@ -163,14 +168,14 @@ def run_command(command):
 
 # generate the lps and get the lps pretty print
 run_command(f"mcrl22lps --no-alpha --no-cluster --no-constelm --no-deltaelm --no-globvars --no-rewrite --no-sumelm {base_name}.mcrl2 {base_name}.lps")
-run_command(f"lpspp {base_name}.lps {base_name}2.lpspp")
+run_command(f"lpspp {base_name}.lps {base_name}.lpspp")
 
 print("To lps time: " + str(update_time()))
 print("finding original states...")
 states = [0 for i in range(0,len(data["points"]))]
 
 # get the correspondence between the original states and the mcrl2 states
-with open(f"{base_name}2.lpspp", "r") as infile:
+with open(f"{base_name}.lpspp", "r") as infile:
     # print("reading")
     lines = infile.readlines()
     for i in range(0,len(lines)-1):
