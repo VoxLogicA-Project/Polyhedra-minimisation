@@ -182,10 +182,12 @@ with open(f"{base_name}.lpspp", "r") as infile:
     for i in range(0,len(lines)-1):
         no_whitespace = re.sub(r'\s', '', lines[i])
         if len(no_whitespace) > 0 and no_whitespace[0] == 's':
+            num_str = no_whitespace[4:-1]
+            print(num_str)
             next_no_whitespace = re.sub(r'\s', '', lines[i+1])
-            states[int(no_whitespace[4])] = int(next_no_whitespace[-2])
+            states[int(num_str)] = int(next_no_whitespace[10:-1])
 
-    # print(states)
+    #print(states)
 points = len(data["points"])
 
 print("Get original states time: " + str(update_time()))
