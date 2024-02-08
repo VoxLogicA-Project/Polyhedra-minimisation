@@ -226,13 +226,23 @@ string_pairs = re.sub(r':', '', states_string)
 
 pairs = [(0,0) for i in range(0,points)]
 
-for i in range(0, len(string_pairs)):
-    if string_pairs[i] == '.' or string_pairs[i] == '(' or string_pairs[i] == ')':
-        continue
-    if string_pairs[i+1] == '(':
-        # print(string_pairs[i])
-        index = states.index(int(string_pairs[i+2]))
-        pairs[index] = (int(string_pairs[i]), index)
+string_list = string_pairs.split(')')
+string_list = string_list[:-1]
+# print(string_list)
+for i in range(0, len(string_list)):
+    string_list[i] = re.sub(r'\.', '', string_list[i])
+    # print(string_list[i])
+    splitted = string_list[i].split('(')
+    index = states.index(int(splitted[1]))
+    pairs[index] = (int(splitted[0]), index)
+
+# for i in range(0, len(string_pairs)):
+#     if string_pairs[i] == '.' or string_pairs[i] == '(' or string_pairs[i] == ')':
+#         continue
+#     if string_pairs[i+1] == '(':
+#         # print(string_pairs[i])
+#         index = states.index(int(string_pairs[i+2]))
+#         pairs[index] = (int(string_pairs[i]), index)
 
 # pairs contains now the pairs (class, original_state)
 # print(pairs)
