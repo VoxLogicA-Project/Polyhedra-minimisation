@@ -1,0 +1,51 @@
+load model = "polylogica/3DMAZE_7x7/3DmazeModel.json"
+
+// Define reach (rho) in terms of through (gamma)
+let reach(x,y) = x | through(y,x)
+
+// Surround in terms of reach (rho)
+let sur(x,y)	= x & !reach(!(x | y), !y)
+
+let green       = ap("G")
+let white       = ap("W")
+let black       = ap("B")
+let red         = ap("R")
+let corridor    = ap("corridor")
+
+let blackOrWhite               = (black | white)
+
+let corridorWW			= through( corridor, white ) & !through( corridor, green | black | red )
+let corridorWG			= through( corridor, white ) & through( corridor, green )
+let corridorWR			= through( corridor, white ) & through( corridor, red )
+let corridorWB			= through( corridor, white ) & through( corridor, black )
+
+let whiteToGreen		= through((white | corridorWW | corridorWG), green)
+let connWG			= whiteToGreen | through(green,whiteToGreen)
+let connRWG			= through((connWG | corridorWR), red) | through((red | corridorWR), connWG)
+
+// The following two expressions are both identifying white areas surrounded
+// completely by corridors leading to black rooms
+let whiteNoGreen		= (white | corridorWW) & !whiteToGreen
+let whiteSblack			= sur((white | corridorWW), corridorWB) 
+
+// Test rho vs. gamma
+//let throughCorRed = through(corridor, red)
+//let reachRedCor = reach(red, corridor)
+
+//save "throughCorRed"     throughCorRed 
+//save "reachRedCor"       reachRedCor
+
+save "blackOrwhite" blackOrWhite
+
+save "corridorWW" corridorWW
+save "corridorWG" corridorWG
+save "corridorWR" corridorWR
+save "corridorWB" corridorWB
+
+save "whiteToGreen" whiteToGreen
+save "connWG" connWG
+save "connRWG" connRWG
+
+save "whiteNoGreen" whiteNoGreen
+save "whiteSblack" whiteSblack
+
