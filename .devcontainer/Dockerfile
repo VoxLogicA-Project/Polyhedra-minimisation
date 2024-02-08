@@ -37,5 +37,5 @@ RUN echo "* hard stack 8388608" >> /etc/security/limits.conf
 
 
 RUN echo root:root | chpasswd 
-WORKDIR /workspaces/case-study-eta-minimization
+#WORKDIR /workspaces/case-study-eta-minimization
 
