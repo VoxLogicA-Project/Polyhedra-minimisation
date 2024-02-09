@@ -173,18 +173,26 @@ run_command(f"lpspp {base_name}.lps {base_name}.lpspp")
 print("To lps time: " + str(update_time()))
 
 print("finding original states...")
+# create a list of zeroes: zeroes will be replaced with the corresponding
+# state of the mcrl2 model: the index of the original state will contain the corresponding mmcrl2 state
 states = [0 for i in range(0,len(data["points"]))]
 
 # get the correspondence between the original states and the mcrl2 states
 with open(f"{base_name}.lpspp", "r") as infile:
     # print("reading")
+    # read the lps pretty print file lines
     lines = infile.readlines()
     for i in range(0,len(lines)-1):
+        # clean whitespaces
         no_whitespace = re.sub(r'\s', '', lines[i])
+        # if the line starts with s, it is the fake label named as the original state
         if len(no_whitespace) > 0 and no_whitespace[0] == 's':
+            # the required index is the final part of the string
             num_str = no_whitespace[4:-1]
-            print(num_str)
+            # print(num_str)
+            # remove whitespaces from the following line
             next_no_whitespace = re.sub(r'\s', '', lines[i+1])
+            # convert the final part of the string to int and place it in the list of states
             states[int(num_str)] = int(next_no_whitespace[10:-1])
             #print(states[int(num_str)])
 
@@ -212,27 +220,36 @@ print("converting to visualizer format...")
 result = subprocess.run(f"ltsinfo -l {base_name}_minimised.lts", stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True) 
 stderr_str = result.stderr
 
+# parse ltsinfo.txt and decode it
 with open("ltsinfo.txt", 'wb') as infofile:
     infofile.write(stderr_str)
 
 decoded_string = stderr_str.decode("utf-8")
+# remove whitespaces
 no_white_decoded = re.sub(r'\s', '', decoded_string)
+# get the final part of the string, containing pairs (class, state)
 states_string = no_white_decoded.split("Thestatelabelsofthislabelledtransitionsystem:",1)[1]
 # print(states_string)
 
+# remove colons
 string_pairs = re.sub(r':', '', states_string)
 
 # print(string_pairs)
 
 pairs = [(0,0) for i in range(0,points)]
 
+# split the string in such a way that we get a list of strings ".class(state"
 string_list = string_pairs.split(')')
+# last string is a semicolon
 string_list = string_list[:-1]
 # print(string_list)
 for i in range(0, len(string_list)):
+    # remove periods from strings
     string_list[i] = re.sub(r'\.', '', string_list[i])
     # print(string_list[i])
+    # split strings to separate classes and states
     splitted = string_list[i].split('(')
+    # now assign classes to the original states
     index = states.index(int(splitted[1]))
     pairs[index] = (int(splitted[0]), index)
 
@@ -272,7 +289,7 @@ for i in range(0, len(classes)):
 
 # print(jsonArrays)
 
-finals = []
+# finals = []
 
 for i in range(0, len(jsonArrays)):
     with open("jsonOutput" + str(i) + ".json", 'w') as outjson:
