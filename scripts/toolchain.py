@@ -186,7 +186,7 @@ with open(f"{base_name}.lpspp", "r") as infile:
             print(num_str)
             next_no_whitespace = re.sub(r'\s', '', lines[i+1])
             states[int(num_str)] = int(next_no_whitespace[10:-1])
-            print(states[int(num_str)])
+            #print(states[int(num_str)])
 
     #print(states)
 points = len(data["points"])
