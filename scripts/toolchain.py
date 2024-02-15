@@ -153,6 +153,94 @@ def poset2mcrl2(args):
 def poly2poset(args):
     run_command(f"../../scripts/PolyPoProject/bin/Debug/net8.0/PolyPoProject " + args["poly"] + " " + args["poset"])
 
+def mcrl2lps(args):
+    run_command(f"mcrl22lps --no-alpha --no-cluster --no-constelm --no-deltaelm --no-globvars --no-rewrite --no-sumelm " + args["mcrl2"] + " " + args["lps"])
+
+def lps2lpspp(args):
+    run_command("lpspp " + args["lps"] + " " + args["lpspp"])
+
+def renamelps(args):
+    run_command("lpsactionrename --regex=\"st1_[0-" + str(args["points"]) + "]/tau\" " + args["base"] + " " + args["renamed"])
+
+def findStates(args):
+    with open(args["base"], "r") as infile:
+        # read the lps pretty print file lines
+        lines = infile.readlines()
+        for i in range(0,len(lines)-1):
+            # clean whitespaces
+            no_whitespace = re.sub(r'\s', '', lines[i])
+            # if the line starts with s, it is the fake label named as the original state
+            if len(no_whitespace) > 0 and no_whitespace[0] == 's':
+                # the required index is the final part of the string
+                num_str = no_whitespace[4:-1]
+                # remove whitespaces from the following line
+                next_no_whitespace = re.sub(r'\s', '', lines[i+1])
+                # convert the final part of the string to int and place it in the list of states
+                args["states"][int(num_str)] = int(next_no_whitespace[10:-1])
+        with open("states.txt", 'w') as outfile:
+            outfile.write(str(args["states"]))
+
+def lps2lts(args):
+    run_command("lps2lts --threads=32 " + args["lps"] + " " + args["lts"])
+
+def ltsminimise(args):
+    run_command("ltsconvert -ebranching-bisim " + args["base"] + " " + args["minimised"])
+
+def createJsonFiles(args):
+    result = subprocess.run("ltsinfo -l " + args["minimised"] , stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True) 
+    stderr_str = result.stderr
+    # parse ltsinfo.txt and decode it
+    with open("ltsinfo.txt", 'wb') as infofile:
+        infofile.write(stderr_str)
+    decoded = stderr_str.decode("utf-8")
+
+    pairs = [(0,0) for i in range(0,points)]
+    no_white_decoded = re.sub(r'\s', '', decoded)
+    # get the final part of the string, containing pairs (class, state)
+    states_string = no_white_decoded.split("Thestatelabelsofthislabelledtransitionsystem:",1)[1]
+
+    # remove colons
+    string_pairs = re.sub(r':', '', states_string)
+
+
+    # split the string in such a way that we get a list of strings ".class(state"
+    string_list = string_pairs.split(')')
+    # last string is a semicolon
+    string_list = string_list[:-1]
+    for i in range(0, len(string_list)):
+        # remove periods from strings
+        string_list[i] = re.sub(r'\.', '', string_list[i])
+        # split strings to separate classes and states
+        splitted = string_list[i].split('(')
+        # now assign classes to the original states
+        index = states.index(int(splitted[1]))
+        pairs[index] = (int(splitted[0]), index)
+
+    # get the correspondence between original states and atoms (don't know if this is needed)
+    color_state = [(0,"") for i in range(0,points)]
+    i=0
+
+    for elem in data["points"]:
+        color_state[i] = (pairs[i][0], elem["atoms"])
+        i = i+1
+
+    classes_with_duplicates = [i for (i,_) in pairs]
+    classes = list(dict.fromkeys(classes_with_duplicates))
+
+    jsonArrays = [ {"class" + str(i) : []} for i in range(0, len(classes)) ]
+
+    for i in range(0, len(classes)):
+        for j in range(0, len(pairs)):
+            if classes[i] == pairs[j][0]:
+                jsonArrays[i]["class" + str(i)].append("true")
+            else:
+                jsonArrays[i]["class" + str(i)].append("false")
+
+    for i in range(0, len(jsonArrays)):
+        with open("jsonOutput" + str(i) + ".json", 'w') as outjson:
+            json.dump(jsonArrays[i], outjson, indent=2)
+
+
 def cached_execute(filename, name, fn, args):
     if os.path.exists(filename):
         print("file " + filename + " already exists")
@@ -194,9 +282,8 @@ print("converting to lps...")
 # generate the lps and get the lps pretty print
 # NOTE: this files must always be recreated, as they are computed twice with different actions.
 # Therefore, an existing lps file is different than the one created here, that is needed to retrieve original states
-run_command(f"mcrl22lps --no-alpha --no-cluster --no-constelm --no-deltaelm --no-globvars --no-rewrite --no-sumelm " + base_name + ".mcrl2 " + base_name + ".lps")
-run_command(f"lpspp {base_name}.lps {base_name}.lpspp")
-
+cached_execute(f"{base_name}.lps", f"{base_name}.lps", mcrl2lps, { "mcrl2" : f"{base_name}.mcrl2", "lps" : f"{base_name}.lps" })
+cached_execute(f"{base_name}.lpspp", f"{base_name}.lpspp", lps2lpspp, { "lps" : f"{base_name}.lps", "lpspp" : f"{base_name}.lpspp"})
 print("To lps time: " + str(update_time()))
 
 print("finding original states...")
@@ -205,94 +292,31 @@ print("finding original states...")
 states = [0 for i in range(0,len(data["points"]))]
 
 # get the correspondence between the original states and the mcrl2 states
-with open(f"{base_name}.lpspp", "r") as infile:
-    # read the lps pretty print file lines
-    lines = infile.readlines()
-    for i in range(0,len(lines)-1):
-        # clean whitespaces
-        no_whitespace = re.sub(r'\s', '', lines[i])
-        # if the line starts with s, it is the fake label named as the original state
-        if len(no_whitespace) > 0 and no_whitespace[0] == 's':
-            # the required index is the final part of the string
-            num_str = no_whitespace[4:-1]
-            # remove whitespaces from the following line
-            next_no_whitespace = re.sub(r'\s', '', lines[i+1])
-            # convert the final part of the string to int and place it in the list of states
-            states[int(num_str)] = int(next_no_whitespace[10:-1])
+cached_execute(f"states.txt", f"states.txt", findStates, { "base" : f"{base_name}.lpspp", "states" : states })
 
 points = len(data["points"])
 
 print("Get original states time: " + str(update_time()))
 print("renaming...")
 # now rename actions into tau and get the clean lps
-run_command(f"lpsactionrename --regex=\"st1_[0-{points}]/tau\" {base_name}.lps {base_name}.lps")
-run_command(f"lpspp {base_name}.lps {base_name}.lpspp")
+cached_execute(f"{base_name}_renamed.lps", f"{base_name}_renamed.lps", renamelps, {"base" : f"{base_name}.lps", "renamed" : f"{base_name}_renamed.lps", "points" : points})
+cached_execute(f"{base_name}_renamed.lpspp", f"{base_name}_renamed.lpspp", lps2lpspp, {"lps" : f"{base_name}_renamed.lps", "lpspp" : f"{base_name}_renamed.lpspp"})
 
 print("Renaming time: " + str(update_time()))
 print("converting to lts...")
 # transform the lps into an lts and minimise it
-run_command(f"lps2lts --threads=32 {base_name}.lps {base_name}.lts")
+cached_execute(f"{base_name}_renamed.lts", f"{base_name}_renamed.lts", lps2lts, { "lps" : f"{base_name}_renamed.lps" , "lts"  : f"{base_name}_renamed.lts" })
 print("convert time: " + str(update_time()))
 
 print("minimizing....")
-run_command(f"ltsconvert -ebranching-bisim {base_name}.lts ./{base_name}_minimised.lts")
+cached_execute(f"{base_name}_minimised.lts", f"{base_name}_minimised.lts", ltsminimise, { "base" : f"{base_name}_renamed.lts", "minimised" : f"{base_name}_minimised.lts" })
 
 print("Minimise time: " + str(update_time()))
 print("converting to visualizer format...")
 # now we get the ltsinfo and the correspondence between classes and original states
-result = subprocess.run(f"ltsinfo -l {base_name}_minimised.lts", stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True) 
-stderr_str = result.stderr
 
-# parse ltsinfo.txt and decode it
-with open("ltsinfo.txt", 'wb') as infofile:
-    infofile.write(stderr_str)
+cached_execute(f"jsonOutput0.json", f"jsonOutput0.json", createJsonFiles, { "minimised" : f"{base_name}_minimised.lts" })
 
-decoded_string = stderr_str.decode("utf-8")
 # remove whitespaces
-no_white_decoded = re.sub(r'\s', '', decoded_string)
-# get the final part of the string, containing pairs (class, state)
-states_string = no_white_decoded.split("Thestatelabelsofthislabelledtransitionsystem:",1)[1]
-
-# remove colons
-string_pairs = re.sub(r':', '', states_string)
-
-pairs = [(0,0) for i in range(0,points)]
-
-# split the string in such a way that we get a list of strings ".class(state"
-string_list = string_pairs.split(')')
-# last string is a semicolon
-string_list = string_list[:-1]
-for i in range(0, len(string_list)):
-    # remove periods from strings
-    string_list[i] = re.sub(r'\.', '', string_list[i])
-    # split strings to separate classes and states
-    splitted = string_list[i].split('(')
-    # now assign classes to the original states
-    index = states.index(int(splitted[1]))
-    pairs[index] = (int(splitted[0]), index)
-
-# get the correspondence between original states and atoms (don't know if this is needed)
-color_state = [(0,"") for i in range(0,points)]
-i=0
-
-for elem in data["points"]:
-    color_state[i] = (pairs[i][0], elem["atoms"])
-    i = i+1
-
-classes_with_duplicates = [i for (i,_) in pairs]
-classes = list(dict.fromkeys(classes_with_duplicates))
-
-jsonArrays = [ {"class" + str(i) : []} for i in range(0, len(classes)) ]
-
-for i in range(0, len(classes)):
-    for j in range(0, len(pairs)):
-        if classes[i] == pairs[j][0]:
-            jsonArrays[i]["class" + str(i)].append("true")
-        else:
-            jsonArrays[i]["class" + str(i)].append("false")
-
-for i in range(0, len(jsonArrays)):
-    with open("jsonOutput" + str(i) + ".json", 'w') as outjson:
-        json.dump(jsonArrays[i], outjson, indent=2)
 
 print("Conversion time: " + str(update_time()))
