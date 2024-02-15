@@ -27,6 +27,8 @@ def update_time():
     last_time = time.time()
     return last_time - tmp
 
+times = ({})
+
 def poset2mcrl2(args):
     data = args["data"]
     base_name = args["base_name"]
@@ -154,15 +156,18 @@ def poly2poset(args):
     run_command(f"../../scripts/PolyPoProject/bin/Debug/net8.0/PolyPoProject " + args["poly"] + " " + args["poset"])
 
 def mcrl2lps(args):
+    print("converting to lps...")
     run_command(f"mcrl22lps --no-alpha --no-cluster --no-constelm --no-deltaelm --no-globvars --no-rewrite --no-sumelm " + args["mcrl2"] + " " + args["lps"])
 
 def lps2lpspp(args):
     run_command("lpspp " + args["lps"] + " " + args["lpspp"])
 
 def renamelps(args):
+    print("renaming...")
     run_command("lpsactionrename --regex=\"st1_[0-" + str(args["points"]) + "]/tau\" " + args["base"] + " " + args["renamed"])
 
 def findStates(args):
+    print("finding original states...")
     with open(args["base"], "r") as infile:
         # read the lps pretty print file lines
         lines = infile.readlines()
@@ -181,12 +186,15 @@ def findStates(args):
             outfile.write(str(args["states"]))
 
 def lps2lts(args):
+    print("converting to lts...")
     run_command("lps2lts --threads=32 " + args["lps"] + " " + args["lts"])
 
 def ltsminimise(args):
+    print("minimizing....")
     run_command("ltsconvert -ebranching-bisim " + args["base"] + " " + args["minimised"])
 
 def createJsonFiles(args):
+    print("converting to visualizer format...")
     result = subprocess.run("ltsinfo -l " + args["minimised"] , stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True) 
     stderr_str = result.stderr
     # parse ltsinfo.txt and decode it
@@ -240,83 +248,66 @@ def createJsonFiles(args):
         with open("jsonOutput" + str(i) + ".json", 'w') as outjson:
             json.dump(jsonArrays[i], outjson, indent=2)
 
+### CACHED EXECUTION
 
 def cached_execute(filename, name, fn, args):
     if os.path.exists(filename):
         print("file " + filename + " already exists")
     else:
         fn(args)
+        now = update_time()
+        times[name] = [now]
+        print(f"{name} time: " + str(now))
 
 ### THE GLOBAL SCRIPT STARTS HERE
 
 import sys,os
 input_file = sys.argv[1] #this is base_name.json
+
 base_name = os.path.splitext(input_file)[0]
+init_time()
 
 if not base_name.split('_')[-1] == "Poset":
-    print("here")
     base_name = base_name + "_Poset"
-    cached_execute(base_name + ".json", base_name + ".json", poly2poset, { "poly" : input_file, "poset" : base_name + ".json"})
+    cached_execute(base_name + ".json", f"poly2poset", poly2poset, { "poly" : input_file, "poset" : base_name + ".json"})
 poset_file = base_name + f".json"
-
-init_time()
-times = {}
 
 with open(f'{poset_file}') as f:
     # Load the JSON data into a dictionary
     data = json.load(f)
 
-print(base_name)
-
-cached_execute(base_name + ".mcrl2", base_name + ".mcrl2", poset2mcrl2, {"data" : data, "base_name" : base_name})
-now = update_time()
-times["To mcrl2"] = [now]
-print("To mcrl2 time: " + str(now))
-print(times)
-psTimes = ps.DataFrame(times)
-jsonTime = psTimes.to_json()
-print(jsonTime)
-
-print("converting to lps...")
+cached_execute(base_name + ".mcrl2", f"poset2mcrl2", poset2mcrl2, {"data" : data, "base_name" : base_name})
 
 # generate the lps and get the lps pretty print
 # NOTE: this files must always be recreated, as they are computed twice with different actions.
 # Therefore, an existing lps file is different than the one created here, that is needed to retrieve original states
-cached_execute(f"{base_name}.lps", f"{base_name}.lps", mcrl2lps, { "mcrl2" : f"{base_name}.mcrl2", "lps" : f"{base_name}.lps" })
-cached_execute(f"{base_name}.lpspp", f"{base_name}.lpspp", lps2lpspp, { "lps" : f"{base_name}.lps", "lpspp" : f"{base_name}.lpspp"})
-print("To lps time: " + str(update_time()))
+cached_execute(f"{base_name}.lps", f"mcrl2lps", mcrl2lps, { "mcrl2" : f"{base_name}.mcrl2", "lps" : f"{base_name}.lps" })
+cached_execute(f"{base_name}.lpspp", f"lps2lpspp", lps2lpspp, { "lps" : f"{base_name}.lps", "lpspp" : f"{base_name}.lpspp"})
 
-print("finding original states...")
 # create a list of zeroes: zeroes will be replaced with the corresponding
 # state of the mcrl2 model: the index of the original state will contain the corresponding mmcrl2 state
 states = [0 for i in range(0,len(data["points"]))]
 
 # get the correspondence between the original states and the mcrl2 states
-cached_execute(f"states.txt", f"states.txt", findStates, { "base" : f"{base_name}.lpspp", "states" : states })
+cached_execute(f"states.txt", f"findStates", findStates, { "base" : f"{base_name}.lpspp", "states" : states })
 
 points = len(data["points"])
 
-print("Get original states time: " + str(update_time()))
-print("renaming...")
 # now rename actions into tau and get the clean lps
-cached_execute(f"{base_name}_renamed.lps", f"{base_name}_renamed.lps", renamelps, {"base" : f"{base_name}.lps", "renamed" : f"{base_name}_renamed.lps", "points" : points})
-cached_execute(f"{base_name}_renamed.lpspp", f"{base_name}_renamed.lpspp", lps2lpspp, {"lps" : f"{base_name}_renamed.lps", "lpspp" : f"{base_name}_renamed.lpspp"})
+cached_execute(f"{base_name}_renamed.lps", f"renamelps", renamelps, {"base" : f"{base_name}.lps", "renamed" : f"{base_name}_renamed.lps", "points" : points})
+cached_execute(f"{base_name}_renamed.lpspp", f"lps2lpspp", lps2lpspp, {"lps" : f"{base_name}_renamed.lps", "lpspp" : f"{base_name}_renamed.lpspp"})
 
-print("Renaming time: " + str(update_time()))
-print("converting to lts...")
 # transform the lps into an lts and minimise it
-cached_execute(f"{base_name}_renamed.lts", f"{base_name}_renamed.lts", lps2lts, { "lps" : f"{base_name}_renamed.lps" , "lts"  : f"{base_name}_renamed.lts" })
-print("convert time: " + str(update_time()))
+cached_execute(f"{base_name}_renamed.lts", f"lps2lts", lps2lts, { "lps" : f"{base_name}_renamed.lps" , "lts"  : f"{base_name}_renamed.lts" })
+cached_execute(f"{base_name}_minimised.lts", f"ltsminimise", ltsminimise, { "base" : f"{base_name}_renamed.lts", "minimised" : f"{base_name}_minimised.lts" })
 
-print("minimizing....")
-cached_execute(f"{base_name}_minimised.lts", f"{base_name}_minimised.lts", ltsminimise, { "base" : f"{base_name}_renamed.lts", "minimised" : f"{base_name}_minimised.lts" })
-
-print("Minimise time: " + str(update_time()))
-print("converting to visualizer format...")
 # now we get the ltsinfo and the correspondence between classes and original states
+cached_execute(f"jsonOutput0.json", f"createJsonFiles", createJsonFiles, { "minimised" : f"{base_name}_minimised.lts" })
 
-cached_execute(f"jsonOutput0.json", f"jsonOutput0.json", createJsonFiles, { "minimised" : f"{base_name}_minimised.lts" })
+df = ps.DataFrame.from_dict(times,orient="index")
 
-# remove whitespaces
+print("---")
+print(df)
 
-print("Conversion time: " + str(update_time()))
+with open(sys.argv[2], 'w') as outfile:
+    df.to_latex(outfile, header=False)

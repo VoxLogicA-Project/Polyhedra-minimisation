@@ -2,6 +2,14 @@
   "build": {
     "dockerfile": "Dockerfile"
   },
+  "mounts": [
+    {
+      "type": "bind",
+      "source": "${env:HOME}",
+      "target": "${env:HOME}"
+    }  
+  ],
+  "runArgs": ["-w","${env:HOME}"],
   "customizations": {
     "vscode": {
       "extensions": [

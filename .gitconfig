@@ -2,4 +2,4 @@
 	email = mieke.massink@isti.cnr.it
 	name = Mieke Massink
 [credential]
-	helper = "!f() { /workspaces/case-study-eta-minimization/.vscode-server/bin/8b3775030ed1a69b13e4f4c628c612102e30a681/node /tmp/vscode-remote-containers-0c7e1297-739f-4559-ba3a-50d2d244b48a.js git-credential-helper $*; }; f"
+	helper = "!f() { /workspaces/case-study-eta-minimization/.vscode-server/bin/31c37ee8f63491495ac49e43b8544550fbae4533/node /tmp/vscode-remote-containers-468cb131-5c8e-48fb-b42a-78f37370e773.js git-credential-helper $*; }; f"
