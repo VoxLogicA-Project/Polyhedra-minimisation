@@ -9,6 +9,7 @@ import time
 
 import resource
 import networkx as nx
+import pandas as ps
 
 #Utilities
 resource.setrlimit(resource.RLIMIT_STACK, (100000000,100000000))
@@ -26,7 +27,9 @@ def update_time():
     last_time = time.time()
     return last_time - tmp
 
-def poset2mcrl2(data,base_name):
+def poset2mcrl2(args):
+    data = args["data"]
+    base_name = args["base_name"]
     #These functions are used to encode a model into an LTS
     def uncover(data):
         up = set()
@@ -147,27 +150,51 @@ def poset2mcrl2(data,base_name):
             outfile.write(";")
         outfile.write(f"\n\ninit\n\n{name_state(encoded['states'][0])};")    
 
+def poly2poset(args):
+    run_command(f"../../scripts/PolyPoProject/bin/Debug/net8.0/PolyPoProject " + args["poly"] + " " + args["poset"])
+
+def cached_execute(filename, name, fn, args):
+    if os.path.exists(filename):
+        print("file " + filename + " already exists")
+    else:
+        fn(args)
 
 ### THE GLOBAL SCRIPT STARTS HERE
 
 import sys,os
-input_file = sys.argv[1]
+input_file = sys.argv[1] #this is base_name.json
 base_name = os.path.splitext(input_file)[0]
 
-init_time()
+if not base_name.split('_')[-1] == "Poset":
+    print("here")
+    base_name = base_name + "_Poset"
+    cached_execute(base_name + ".json", base_name + ".json", poly2poset, { "poly" : input_file, "poset" : base_name + ".json"})
+poset_file = base_name + f".json"
 
-with open(f'{input_file}') as f:
+init_time()
+times = {}
+
+with open(f'{poset_file}') as f:
     # Load the JSON data into a dictionary
     data = json.load(f)
 
-poset2mcrl2(data,base_name)
+print(base_name)
 
-print("To mcrl2 time: " + str(update_time()))
+cached_execute(base_name + ".mcrl2", base_name + ".mcrl2", poset2mcrl2, {"data" : data, "base_name" : base_name})
+now = update_time()
+times["To mcrl2"] = [now]
+print("To mcrl2 time: " + str(now))
+print(times)
+psTimes = ps.DataFrame(times)
+jsonTime = psTimes.to_json()
+print(jsonTime)
 
 print("converting to lps...")
 
 # generate the lps and get the lps pretty print
-run_command(f"mcrl22lps --no-alpha --no-cluster --no-constelm --no-deltaelm --no-globvars --no-rewrite --no-sumelm {base_name}.mcrl2 {base_name}.lps")
+# NOTE: this files must always be recreated, as they are computed twice with different actions.
+# Therefore, an existing lps file is different than the one created here, that is needed to retrieve original states
+run_command(f"mcrl22lps --no-alpha --no-cluster --no-constelm --no-deltaelm --no-globvars --no-rewrite --no-sumelm " + base_name + ".mcrl2 " + base_name + ".lps")
 run_command(f"lpspp {base_name}.lps {base_name}.lpspp")
 
 print("To lps time: " + str(update_time()))
@@ -179,7 +206,6 @@ states = [0 for i in range(0,len(data["points"]))]
 
 # get the correspondence between the original states and the mcrl2 states
 with open(f"{base_name}.lpspp", "r") as infile:
-    # print("reading")
     # read the lps pretty print file lines
     lines = infile.readlines()
     for i in range(0,len(lines)-1):
@@ -189,14 +215,11 @@ with open(f"{base_name}.lpspp", "r") as infile:
         if len(no_whitespace) > 0 and no_whitespace[0] == 's':
             # the required index is the final part of the string
             num_str = no_whitespace[4:-1]
-            # print(num_str)
             # remove whitespaces from the following line
             next_no_whitespace = re.sub(r'\s', '', lines[i+1])
             # convert the final part of the string to int and place it in the list of states
             states[int(num_str)] = int(next_no_whitespace[10:-1])
-            #print(states[int(num_str)])
 
-    #print(states)
 points = len(data["points"])
 
 print("Get original states time: " + str(update_time()))
@@ -229,12 +252,9 @@ decoded_string = stderr_str.decode("utf-8")
 no_white_decoded = re.sub(r'\s', '', decoded_string)
 # get the final part of the string, containing pairs (class, state)
 states_string = no_white_decoded.split("Thestatelabelsofthislabelledtransitionsystem:",1)[1]
-# print(states_string)
 
 # remove colons
 string_pairs = re.sub(r':', '', states_string)
-
-# print(string_pairs)
 
 pairs = [(0,0) for i in range(0,points)]
 
@@ -242,27 +262,14 @@ pairs = [(0,0) for i in range(0,points)]
 string_list = string_pairs.split(')')
 # last string is a semicolon
 string_list = string_list[:-1]
-# print(string_list)
 for i in range(0, len(string_list)):
     # remove periods from strings
     string_list[i] = re.sub(r'\.', '', string_list[i])
-    # print(string_list[i])
     # split strings to separate classes and states
     splitted = string_list[i].split('(')
     # now assign classes to the original states
     index = states.index(int(splitted[1]))
     pairs[index] = (int(splitted[0]), index)
-
-# for i in range(0, len(string_pairs)):
-#     if string_pairs[i] == '.' or string_pairs[i] == '(' or string_pairs[i] == ')':
-#         continue
-#     if string_pairs[i+1] == '(':
-#         # print(string_pairs[i])
-#         index = states.index(int(string_pairs[i+2]))
-#         pairs[index] = (int(string_pairs[i]), index)
-
-# pairs contains now the pairs (class, original_state)
-# print(pairs)
 
 # get the correspondence between original states and atoms (don't know if this is needed)
 color_state = [(0,"") for i in range(0,points)]
@@ -272,12 +279,9 @@ for elem in data["points"]:
     color_state[i] = (pairs[i][0], elem["atoms"])
     i = i+1
 
-# print(color_state)
-
 classes_with_duplicates = [i for (i,_) in pairs]
 classes = list(dict.fromkeys(classes_with_duplicates))
 
-# # print(classes)
 jsonArrays = [ {"class" + str(i) : []} for i in range(0, len(classes)) ]
 
 for i in range(0, len(classes)):
@@ -286,10 +290,6 @@ for i in range(0, len(classes)):
             jsonArrays[i]["class" + str(i)].append("true")
         else:
             jsonArrays[i]["class" + str(i)].append("false")
-
-# print(jsonArrays)
-
-# finals = []
 
 for i in range(0, len(jsonArrays)):
     with open("jsonOutput" + str(i) + ".json", 'w') as outjson:
