@@ -17,18 +17,23 @@ resource.setrlimit(resource.RLIMIT_STACK, (100000000,100000000))
 def run_command(command):
     subprocess.run(command, shell=True)
 
-def init_time():
-    global last_time
-    last_time = time.time()
+# def init_time():
+#     global last_time
+#     last_time = time.time()
 
-def update_time():
-    global last_time
-    tmp = last_time
-    last_time = time.time()
-    return last_time - tmp
+# def update_time():
+#     global last_time
+#     tmp = last_time
+#     last_time = time.time()
+#     return last_time - tmp
 
 times = ({})
 
+def loadData(args):
+    with open(args["poset"]) as f:
+    # Load the JSON data into a dictionary
+        args["data"] = json.load(f)
+        
 def poset2mcrl2(args):
     data = args["data"]
     base_name = args["base_name"]
@@ -109,10 +114,8 @@ def poset2mcrl2(args):
 
     print("parsing...")
     uncovered=uncover(data)
-    print("parse time:" + str(update_time()))
     print("encoding...")
     encoded=encode(uncovered)
-    print("encode time:" + str(update_time()))
 
     print("saving to mcrl2...")
 
@@ -168,6 +171,7 @@ def renamelps(args):
 
 def findStates(args):
     print("finding original states...")
+    states = [i for i in range(0,args["points"])]
     with open(args["base"], "r") as infile:
         # read the lps pretty print file lines
         lines = infile.readlines()
@@ -181,9 +185,9 @@ def findStates(args):
                 # remove whitespaces from the following line
                 next_no_whitespace = re.sub(r'\s', '', lines[i+1])
                 # convert the final part of the string to int and place it in the list of states
-                args["states"][int(num_str)] = int(next_no_whitespace[10:-1])
-        with open("states.txt", 'w') as outfile:
-            outfile.write(str(args["states"]))
+                print("B",int(num_str),int(next_no_whitespace[10:-1]))
+                states[int(num_str)] = int(next_no_whitespace[10:-1])
+    args["states"] = states
 
 def lps2lts(args):
     print("converting to lts...")
@@ -251,11 +255,12 @@ def createJsonFiles(args):
 ### CACHED EXECUTION
 
 def cached_execute(filename, name, fn, args):
+    start_time = time.time()
     if os.path.exists(filename):
         print("file " + filename + " already exists")
     else:
         fn(args)
-        now = update_time()
+        now = time.time() - start_time
         times[name] = [now]
         print(f"{name} time: " + str(now))
 
@@ -265,16 +270,16 @@ import sys,os
 input_file = sys.argv[1] #this is base_name.json
 
 base_name = os.path.splitext(input_file)[0]
-init_time()
 
 if not base_name.split('_')[-1] == "Poset":
     base_name = base_name + "_Poset"
     cached_execute(base_name + ".json", f"poly2poset", poly2poset, { "poly" : input_file, "poset" : base_name + ".json"})
 poset_file = base_name + f".json"
 
-with open(f'{poset_file}') as f:
-    # Load the JSON data into a dictionary
-    data = json.load(f)
+tmp={"poset": poset_file}
+cached_execute("fakefile.txt", f"loadData", loadData, tmp)
+
+data = tmp["data"]
 
 cached_execute(base_name + ".mcrl2", f"poset2mcrl2", poset2mcrl2, {"data" : data, "base_name" : base_name})
 
@@ -286,10 +291,11 @@ cached_execute(f"{base_name}.lpspp", f"lps2lpspp", lps2lpspp, { "lps" : f"{base_
 
 # create a list of zeroes: zeroes will be replaced with the corresponding
 # state of the mcrl2 model: the index of the original state will contain the corresponding mmcrl2 state
-states = [0 for i in range(0,len(data["points"]))]
+tmp2 = {"base" : f"{base_name}.lpspp", "points" : len(data["points"])}
 
 # get the correspondence between the original states and the mcrl2 states
-cached_execute(f"states.txt", f"findStates", findStates, { "base" : f"{base_name}.lpspp", "states" : states })
+cached_execute(f"states.txt", f"findStates", findStates, tmp2)
+states = tmp2["states"]
 
 points = len(data["points"])
 
