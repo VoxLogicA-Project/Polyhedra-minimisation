@@ -30,7 +30,8 @@ RUN apt -y update
 RUN apt -y dist-upgrade
 RUN apt -y install dotnet-sdk-8.0
 
-RUN apt -y install htop nano
+RUN apt -y install htop nano 
+RUN apt -y install screen
 
 RUN echo "* soft stack 8388608" >> /etc/security/limits.conf
 RUN echo "* hard stack 8388608" >> /etc/security/limits.conf

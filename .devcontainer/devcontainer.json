@@ -9,7 +9,7 @@
       "target": "${env:HOME}"
     }  
   ],
-  "runArgs": ["-w","${env:HOME}"],
+  "runArgs": ["-w","${env:HOME}","--userns=keep-id"],
   "customizations": {
     "vscode": {
       "extensions": [
