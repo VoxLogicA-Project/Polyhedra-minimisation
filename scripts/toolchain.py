@@ -1,5 +1,14 @@
 #!/usr/bin/env python3
 
+# converting to lps...
+# ^B^BSegmentation fault (core dumped)
+# mcrl2lps time: 14168.65964460373
+
+# TODO: NECESSARY: switch to an execution function that accepts an array of arguments
+
+
+
+# %%
 import json
 import subprocess
 import sys
@@ -11,8 +20,9 @@ import resource
 import networkx as nx
 import pandas as ps
 
-#Utilities
-resource.setrlimit(resource.RLIMIT_STACK, (100000000,100000000))
+# Utilities
+resource.setrlimit(resource.RLIMIT_STACK, (500000000, 500000000))
+
 
 def run_command(command):
     subprocess.run(command, shell=True)
@@ -27,27 +37,30 @@ def run_command(command):
 #     last_time = time.time()
 #     return last_time - tmp
 
+
 times = ({})
+
 
 def loadData(args):
     with open(args["poset"]) as f:
-    # Load the JSON data into a dictionary
+        # Load the JSON data into a dictionary
         args["data"] = json.load(f)
-        
+
+
 def poset2mcrl2(args):
     data = args["data"]
-    base_name = args["base_name"]
-    #These functions are used to encode a model into an LTS
+    # These functions are used to encode a model into an LTS
+
     def uncover(data):
         up = set()
         points = set()
         valuation = {}
-        atoms = set()    
+        atoms = set()
         for point in data['points']:
             points.add(point["id"])
             valuation[point["id"]] = sorted(point["atoms"])
             for atom in point["atoms"]:
-                atoms.add(atom)        
+                atoms.add(atom)
             for up_id in point['up']:
                 up.add((point['id'], up_id))
                 points.add(up_id)
@@ -58,71 +71,64 @@ def poset2mcrl2(args):
             "up": up
         }
 
-    def transitive_closure(pairs):    
-        dg = nx.DiGraph(pairs)
-        tc = nx.transitive_closure_dag(dg)
-        return tc.edges()
-        
-    def relation_to_function(pairs):
-        res = {}
-        for (a,b) in pairs:
-            if a in res:
-                res[a].add(b)
-            else:
-                res[a] = set([b])
-        return lambda x: [] if x not in res else res[x]
-
     def encode(uncovered):
-        ss = [(1,p) for p in uncovered["points"]]
-        # Mieke added sorting of LTS states in next line  (2023/06/07)  
-        all = sorted(ss)
-        tc = transitive_closure(uncovered["up"])    
-        fn = relation_to_function(tc)
-        tss = set()
-        
-        for (tag,point) in all:                
-                
-            for dest in fn(point):
-    # MKE: here one could first check whether point and dest are just one step in face relation apart
-    # and only in that case add the tau-transitions
-                if uncovered["valuation"][dest] == uncovered["valuation"][point]: 
-                    # The following line is only justified if it is sure that the
-                    # point is in a monochromatic upset!!!
-                    if (point,dest) in set(uncovered["up"]):      
-                        label="tau"
-                        tss.add(((1,point),(label,(1,dest))))
-                        tss.add(((1,dest),(label,(1,point))))
-    #                    label="a"
-    #                    tss.add(((1,point),(label,(1,dest))))
-    #                    tss.add(((1,dest),(label,(1,point))))
-                else:
-                        label="chg"
-                        tss.add(((1,point),(label,(1,dest))))
-                        tss.add(((1,dest),(label,(1,point))))
-                        tss.add(((1,dest),("dwn",(1,point))))
-    
+        print("interpreting data...")
+        # Mieke added sorting of LTS states in next line  (2023/06/07)
+        # VC: why?
+        dg = nx.DiGraph(uncovered["up"])
+        tc = nx.transitive_closure_dag(dg)
+
+        print("-- actual encoding starts here --")
+        v = uncovered["valuation"]
+
+        result = nx.DiGraph()
+        atoms = set(["ap_" + atom for atom in uncovered["atoms"]] +
+                    ["tau", "chg", "dwn"])
+
+        for (point, dest) in tc.edges():
+            # MKE: here one could first check whether point and dest are just one step in face relation apart
+            # and only in that case add the tau-transitions
+            # VINCENZO: is this what is done by the following if?
+            # VINCENZO: could this be done separately on the non-transitively-closed graph for efficiency?
+            if v[dest] == v[point]:
+                # The following line is only justified if it is sure that the
+                # point is in a monochromatic upset!!!
+                # TODO: URGENT: VC: I do not understand this line at all
+                if dg.has_edge(point, dest):
+                    label = "tau"
+                    result.add_edge(point, dest, label=label)
+                    result.add_edge(dest, point, label=label)
+            else:
+                label = "chg"
+                result.add_edge(point, dest, label=label)
+                result.add_edge(dest, point, label=label)
+                result.add_edge(dest, point, label="dwn")
+
             for atom in uncovered["valuation"][point]:
-                tss.add(((tag,point),("ap_"+atom,(tag,point))))
+                result.add_edge(point, point, label="ap_"+atom)
             # add a self loop using the name of the state as an action
             # this will be renamed into tau later
-            tss.add(((tag, point), ("st1_"+point,(tag,point))))
-        return {   
-            "atoms": [ "ap_" + atom for atom in uncovered["atoms"] ] + ["tau","chg","dwn"] + [ "st1_"+point for (tag,point) in all],
-            "states": all,
-            "transitions": list(tss)
+            stlabel = "st1_"+point
+            result.add_edge(point, point, label=stlabel)
+            atoms.add(stlabel)
+
+        return {
+            "atoms": atoms,
+            "lts": result
         }
 
     print("parsing...")
-    uncovered=uncover(data)
+    uncovered = uncover(data)
     print("encoding...")
-    encoded=encode(uncovered)
+    encoded = encode(uncovered)
 
     print("saving to mcrl2...")
 
+    base_name = args["base_name"]
+    output_dir = args["output_dir"]
+
     def name_state(state):
-        match state:
-            case (tag,id):
-                return f"t{tag}_{id}"
+        return f"t1_{state}"
 
     import itertools
 
@@ -130,52 +136,65 @@ def poset2mcrl2(args):
         return list(itertools.chain.from_iterable(zip(iterable, itertools.repeat(elem))))[:-1]
 
     def notau(act):
-        if act == "tau": return False
-        return True 
+        return act != "tau"
 
-    with open(f"{base_name}.mcrl2", "w") as outfile:
-        fn=relation_to_function(encoded["transitions"])
+    with open(f"{output_dir}/{base_name}.mcrl2", "w") as outfile:
+        # fn=relation_to_function(encoded["transitions"])
         outfile.write("act\n    ")
 
-        for a in intersperse(filter(notau,encoded["atoms"]),","):
-                outfile.write(a)       
+        for a in intersperse(filter(notau, encoded["atoms"]), ","):
+            outfile.write(a)
         outfile.write(";")
         outfile.write("\n\nproc\n")
-        for source in encoded["states"]:                
-            name=name_state(source)
+        lts = encoded["lts"]
+        for source in lts.nodes:
+            name = name_state(source)
+
             def fn1(x):
                 match x:
-                    case(a,b):
-                        return f"{a}.{name_state(b)}"        
-            outfile.write(f"\n{name} = \n    ")           
-            ts=map(fn1,fn(source))
-            ts1=intersperse(ts," + ")
+                    case(a, b):
+                        return f"{a}.{name_state(b)}"
+            outfile.write(f"\n{name} = \n    ")
+            ts = []
+            for (dest, data) in lts.adj[source].items():
+                ts.append(fn1((data["label"], dest)))
+
+            ts1 = intersperse(ts, " + ")
             for x in ts1:
                 outfile.write(x)
             outfile.write(";")
-        outfile.write(f"\n\ninit\n\n{name_state(encoded['states'][0])};")    
+        # VC: TODO: URGENT: is the initial state always 0?
+        outfile.write(f"\n\ninit\n\n{name_state(0)};")
+
 
 def poly2poset(args):
-    run_command(f"../../scripts/PolyPoProject/bin/Debug/net8.0/PolyPoProject " + args["poly"] + " " + args["poset"])
+    run_command(f"../../scripts/PolyPoProject/bin/Debug/net8.0/PolyPoProject " +
+                args["poly"] + " " + args["poset"])
+
 
 def mcrl2lps(args):
     print("converting to lps...")
-    run_command(f"mcrl22lps --no-alpha --no-cluster --no-constelm --no-deltaelm --no-globvars --no-rewrite --no-sumelm " + args["mcrl2"] + " " + args["lps"])
+    run_command(f"mcrl22lps -rjittyc --no-alpha --no-cluster --no-constelm --no-deltaelm --no-globvars --no-rewrite --no-sumelm " +
+                args["mcrl2"] + " " + args["lps"])
+
 
 def lps2lpspp(args):
+    print("HERE", args["lps"])
     run_command("lpspp " + args["lps"] + " " + args["lpspp"])
+
 
 def renamelps(args):
     print("renaming...")
-    run_command("lpsactionrename --regex=\"st1_[0-" + str(args["points"]) + "]/tau\" " + args["base"] + " " + args["renamed"])
+    cmd = "lpsactionrename --regex=\"st1_[0-9]+/tau\" " + args["base"] + " " + args["renamed"]
+    run_command(cmd)    
 
 def findStates(args):
     print("finding original states...")
-    states = [i for i in range(0,args["points"])]
+    states = [i for i in range(0, args["points"])]
     with open(args["base"], "r") as infile:
         # read the lps pretty print file lines
         lines = infile.readlines()
-        for i in range(0,len(lines)-1):
+        for i in range(0, len(lines)-1):
             # clean whitespaces
             no_whitespace = re.sub(r'\s', '', lines[i])
             # if the line starts with s, it is the fake label named as the original state
@@ -185,35 +204,42 @@ def findStates(args):
                 # remove whitespaces from the following line
                 next_no_whitespace = re.sub(r'\s', '', lines[i+1])
                 # convert the final part of the string to int and place it in the list of states
-                print("B",int(num_str),int(next_no_whitespace[10:-1]))
+                # print("B", int(num_str), int(next_no_whitespace[10:-1]))
                 states[int(num_str)] = int(next_no_whitespace[10:-1])
     args["states"] = states
 
+
 def lps2lts(args):
     print("converting to lts...")
-    run_command("lps2lts --threads=32 " + args["lps"] + " " + args["lts"])
+    run_command("lps2lts  --cached -rjittyc --threads=32 " +
+                args["lps"] + " " + args["lts"])
+
 
 def ltsminimise(args):
     print("minimizing....")
-    run_command("ltsconvert -ebranching-bisim " + args["base"] + " " + args["minimised"])
+    command = "ltsconvert -ebranching-bisim " + args["base"] + " " + args["minimised"]
+    print(command)
+    run_command(command)
+
 
 def createJsonFiles(args):
     print("converting to visualizer format...")
-    result = subprocess.run("ltsinfo -l " + args["minimised"] , stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True) 
+    result = subprocess.run(
+        "ltsinfo -l " + args["minimised"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     stderr_str = result.stderr
     # parse ltsinfo.txt and decode it
     with open("ltsinfo.txt", 'wb') as infofile:
         infofile.write(stderr_str)
     decoded = stderr_str.decode("utf-8")
 
-    pairs = [(0,0) for i in range(0,points)]
+    pairs = [(0, 0) for i in range(0, points)]
     no_white_decoded = re.sub(r'\s', '', decoded)
     # get the final part of the string, containing pairs (class, state)
-    states_string = no_white_decoded.split("Thestatelabelsofthislabelledtransitionsystem:",1)[1]
+    states_string = no_white_decoded.split(
+        "Thestatelabelsofthislabelledtransitionsystem:", 1)[1]
 
     # remove colons
     string_pairs = re.sub(r':', '', states_string)
-
 
     # split the string in such a way that we get a list of strings ".class(state"
     string_list = string_pairs.split(')')
@@ -229,17 +255,17 @@ def createJsonFiles(args):
         pairs[index] = (int(splitted[0]), index)
 
     # get the correspondence between original states and atoms (don't know if this is needed)
-    color_state = [(0,"") for i in range(0,points)]
-    i=0
+    color_state = [(0, "") for i in range(0, points)]
+    i = 0
 
     for elem in data["points"]:
         color_state[i] = (pairs[i][0], elem["atoms"])
         i = i+1
 
-    classes_with_duplicates = [i for (i,_) in pairs]
+    classes_with_duplicates = [i for (i, _) in pairs]
     classes = list(dict.fromkeys(classes_with_duplicates))
 
-    jsonArrays = [ {"class" + str(i) : []} for i in range(0, len(classes)) ]
+    jsonArrays = [{"class" + str(i): []} for i in range(0, len(classes))]
 
     for i in range(0, len(classes)):
         for j in range(0, len(pairs)):
@@ -252,7 +278,8 @@ def createJsonFiles(args):
         with open("jsonOutput" + str(i) + ".json", 'w') as outjson:
             json.dump(jsonArrays[i], outjson, indent=2)
 
-### CACHED EXECUTION
+# CACHED EXECUTION
+
 
 def cached_execute(filename, name, fn, args):
     start_time = time.time()
@@ -264,53 +291,73 @@ def cached_execute(filename, name, fn, args):
         times[name] = [now]
         print(f"{name} time: " + str(now))
 
-### THE GLOBAL SCRIPT STARTS HERE
+# %%
 
-import sys,os
-input_file = sys.argv[1] #this is base_name.json
+# THE GLOBAL SCRIPT STARTS HERE
+
+
+input_file = sys.argv[1]  # this is base_name.json
 
 base_name = os.path.splitext(input_file)[0]
+norm_base_name = os.path.normpath(base_name)
+abs_base_name = os.path.abspath(norm_base_name)
+norm_dir_name = os.path.dirname(abs_base_name)
+output_dir = f'{norm_dir_name}/toolchain_output'
+
+os.makedirs(output_dir, exist_ok=True)
 
 if not base_name.split('_')[-1] == "Poset":
     base_name = base_name + "_Poset"
-    cached_execute(base_name + ".json", f"poly2poset", poly2poset, { "poly" : input_file, "poset" : base_name + ".json"})
+    cached_execute(base_name + ".json", f"poly2poset", poly2poset,
+                   {"poly": input_file, "poset": base_name + ".json"})
 poset_file = base_name + f".json"
 
-tmp={"poset": poset_file}
+tmp = {"poset": poset_file}
 cached_execute("fakefile.txt", f"loadData", loadData, tmp)
 
 data = tmp["data"]
 
-cached_execute(base_name + ".mcrl2", f"poset2mcrl2", poset2mcrl2, {"data" : data, "base_name" : base_name})
+x = cached_execute(output_dir + "/" + base_name + ".mcrl2", f"poset2mcrl2",
+                   poset2mcrl2, {"data": data, "base_name": base_name, "output_dir": output_dir})
 
 # generate the lps and get the lps pretty print
 # NOTE: this files must always be recreated, as they are computed twice with different actions.
 # Therefore, an existing lps file is different than the one created here, that is needed to retrieve original states
-cached_execute(f"{base_name}.lps", f"mcrl2lps", mcrl2lps, { "mcrl2" : f"{base_name}.mcrl2", "lps" : f"{base_name}.lps" })
-cached_execute(f"{base_name}.lpspp", f"lps2lpspp", lps2lpspp, { "lps" : f"{base_name}.lps", "lpspp" : f"{base_name}.lpspp"})
+cached_execute(f"{output_dir}/{base_name}.lps", f"mcrl2lps", mcrl2lps, {
+               "mcrl2": f"{output_dir}/{base_name}.mcrl2", "lps": f"{output_dir}/{base_name}.lps"})
+
+cached_execute(f"{output_dir}/{base_name}.lpspp", f"lps2lpspp", lps2lpspp, {
+               "lps": f"{output_dir}/{base_name}.lps", "lpspp": f"{output_dir}/{base_name}.lpspp"})
 
 # create a list of zeroes: zeroes will be replaced with the corresponding
 # state of the mcrl2 model: the index of the original state will contain the corresponding mmcrl2 state
-tmp2 = {"base" : f"{base_name}.lpspp", "points" : len(data["points"])}
+tmp2 = {"base": f"{output_dir}/{base_name}.lpspp",
+        "points": len(data["points"])}
 
 # get the correspondence between the original states and the mcrl2 states
-cached_execute(f"states.txt", f"findStates", findStates, tmp2)
+cached_execute(f"{output_dir}/states.txt", f"findStates", findStates, tmp2)
 states = tmp2["states"]
 
 points = len(data["points"])
 
 # now rename actions into tau and get the clean lps
-cached_execute(f"{base_name}_renamed.lps", f"renamelps", renamelps, {"base" : f"{base_name}.lps", "renamed" : f"{base_name}_renamed.lps", "points" : points})
-cached_execute(f"{base_name}_renamed.lpspp", f"lps2lpspp", lps2lpspp, {"lps" : f"{base_name}_renamed.lps", "lpspp" : f"{base_name}_renamed.lpspp"})
+cached_execute(f"{output_dir}/{base_name}_renamed.lps", f"renamelps", renamelps, {
+               "base": f"{output_dir}/{base_name}.lps", "renamed": f"{output_dir}/{base_name}_renamed.lps", "points": points})
+cached_execute(f"{output_dir}/{base_name}_renamed.lpspp", f"lps2lpspp", lps2lpspp, {
+               "lps": f"{output_dir}/{base_name}_renamed.lps", "lpspp": f"{output_dir}/{base_name}_renamed.lpspp"})
 
 # transform the lps into an lts and minimise it
-cached_execute(f"{base_name}_renamed.lts", f"lps2lts", lps2lts, { "lps" : f"{base_name}_renamed.lps" , "lts"  : f"{base_name}_renamed.lts" })
-cached_execute(f"{base_name}_minimised.lts", f"ltsminimise", ltsminimise, { "base" : f"{base_name}_renamed.lts", "minimised" : f"{base_name}_minimised.lts" })
+cached_execute(f"{output_dir}/{base_name}_renamed.lts", f"lps2lts", lps2lts, {
+               "lps": f"{output_dir}/{base_name}_renamed.lps", "lts": f"{output_dir}/{base_name}_renamed.lts"})
+
+cached_execute(f"{output_dir}/{base_name}_minimised.lts", f"ltsminimise", ltsminimise, {
+               "base": f"{output_dir}/{base_name}_renamed.lts", "minimised": f"{output_dir}/{base_name}_minimised.lts"})
 
 # now we get the ltsinfo and the correspondence between classes and original states
-cached_execute(f"jsonOutput0.json", f"createJsonFiles", createJsonFiles, { "minimised" : f"{base_name}_minimised.lts" })
+cached_execute(f"jsonOutput0.json", f"createJsonFiles", createJsonFiles, {
+               "minimised": f"{output_dir}/{base_name}_minimised.lts"})
 
-df = ps.DataFrame.from_dict(times,orient="index")
+df = ps.DataFrame.from_dict(times, orient="index")
 
 print("---")
 print(df)

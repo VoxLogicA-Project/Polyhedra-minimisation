@@ -1,9 +1,6 @@
 scripts/class2Atoms/bin
 scripts/class2Atoms/obj
-experiments/triangle/tmp/jsonOutput0.json
-experiments/triangle/tmp/jsonOutput1.json
-experiments/triangle/tmp/jsonOutput2.json
-experiments/triangle/tmp/ltsinfo.txt
-experiments/triangle/toolchain_output/triangleRBModel_Poset.mcrl2
+experiments/*/toolchain_output/*
 scripts/PolyPoProject/bin
 scripts/PolyPoProject/obj
+experiments/coral/
