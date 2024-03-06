@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 
+#%%
 # converting to lps...
 # ^B^BSegmentation fault (core dumped)
 # mcrl2lps time: 14168.65964460373
 
 # TODO: NECESSARY: switch to an execution function that accepts an array of arguments
 
+print("started")
 
 
-# %%
 import json
 import subprocess
 import sys
@@ -25,6 +26,7 @@ resource.setrlimit(resource.RLIMIT_STACK, (500000000, 500000000))
 
 
 def run_command(command):
+    print(f"Running command: {command}")
     subprocess.run(command, shell=True)
 
 # def init_time():
@@ -81,9 +83,19 @@ def poset2mcrl2(args):
         print("-- actual encoding starts here --")
         v = uncovered["valuation"]
 
-        result = nx.DiGraph()
+        result = nx.MultiDiGraph()
         atoms = set(["ap_" + atom for atom in uncovered["atoms"]] +
                     ["tau", "chg", "dwn"])
+        
+        for point in tc.nodes:
+            for atom in uncovered["valuation"][point]:
+                print(point,atom)
+                result.add_edge(point, point, label="ap_"+atom)  
+            # add a self loop using the name of the state as an action
+            # this will be renamed into tau later
+            stlabel = "st1_"+point
+            result.add_edge(point, point, label=stlabel)
+            atoms.add(stlabel)
 
         for (point, dest) in tc.edges():
             # MKE: here one could first check whether point and dest are just one step in face relation apart
@@ -104,17 +116,10 @@ def poset2mcrl2(args):
                 result.add_edge(dest, point, label=label)
                 result.add_edge(dest, point, label="dwn")
 
-            for atom in uncovered["valuation"][point]:
-                result.add_edge(point, point, label="ap_"+atom)
-            # add a self loop using the name of the state as an action
-            # this will be renamed into tau later
-            stlabel = "st1_"+point
-            result.add_edge(point, point, label=stlabel)
-            atoms.add(stlabel)
-
         return {
             "atoms": atoms,
-            "lts": result
+            "lts": result,
+            "tc": tc 
         }
 
     print("parsing...")
@@ -156,32 +161,33 @@ def poset2mcrl2(args):
                         return f"{a}.{name_state(b)}"
             outfile.write(f"\n{name} = \n    ")
             ts = []
-            for (dest, data) in lts.adj[source].items():
-                ts.append(fn1((data["label"], dest)))
+            for (dest, labels) in lts.adj[source].items():
+                for (key,data) in labels.items():
+                    ts.append(fn1((data["label"], dest)))
 
-            ts1 = intersperse(ts, " + ")
+            ts1 = intersperse(ts, " + ") 
             for x in ts1:
                 outfile.write(x)
             outfile.write(";")
         # VC: TODO: URGENT: is the initial state always 0?
         outfile.write(f"\n\ninit\n\n{name_state(0)};")
+    return encoded
 
 
-def poly2poset(args):
+def poly2poset(args): #TODO: switch to the release version of PolyPo (not Debug) and also compile it if not present
     run_command(f"../../scripts/PolyPoProject/bin/Debug/net8.0/PolyPoProject " +
                 args["poly"] + " " + args["poset"])
 
 
 def mcrl2lps(args):
     print("converting to lps...")
-    run_command(f"mcrl22lps -rjittyc --no-alpha --no-cluster --no-constelm --no-deltaelm --no-globvars --no-rewrite --no-sumelm " +
+    #run_command(f"mcrl22lps -rjittyc --no-alpha --no-cluster --no-constelm --no-deltaelm --no-globvars --no-rewrite --no-sumelm " +
+    #            args["mcrl2"] + " " + args["lps"])
+    run_command(f"mcrl22lps --no-alpha --no-cluster --no-constelm --no-deltaelm --no-globvars --no-rewrite --no-sumelm " +
                 args["mcrl2"] + " " + args["lps"])
 
-
 def lps2lpspp(args):
-    print("HERE", args["lps"])
     run_command("lpspp " + args["lps"] + " " + args["lpspp"])
-
 
 def renamelps(args):
     print("renaming...")
@@ -211,15 +217,20 @@ def findStates(args):
 
 def lps2lts(args):
     print("converting to lts...")
-    run_command("lps2lts  --cached -rjittyc --threads=32 " +
+    # run_command("lps2lts  --cached -rjittyc --threads=32 " +
+    #             args["lps"] + " " + args["lts"])
+    run_command("lps2lts  --cached --threads=32 " +
                 args["lps"] + " " + args["lts"])
+    run_command("ltsconvert " + args["lts"] + " " + args["lts"] + ".dot")
+    run_command("neato -Tpdf " + args["lts"] + ".dot" + " -o " + args["lts"] + ".pdf" )
 
 
 def ltsminimise(args):
     print("minimizing....")
-    command = "ltsconvert -ebranching-bisim " + args["base"] + " " + args["minimised"]
-    print(command)
-    run_command(command)
+    #TODO: please use a variable to hold the filenames, and use popen with an array of arguments instead of run_command
+    run_command("ltsconvert -ebranching-bisim " + args["base"] + " " + args["minimised"])    
+    run_command("ltsconvert " + args["minimised"] + " " + args["minimised"] + ".dot")
+    run_command("neato -Tpdf " + args["minimised"] + ".dot" + " -o " + args["minimised"] + ".pdf" )
 
 
 def createJsonFiles(args):
@@ -280,29 +291,38 @@ def createJsonFiles(args):
 
 # CACHED EXECUTION
 
+use_cache = False
 
 def cached_execute(filename, name, fn, args):
     start_time = time.time()
-    if os.path.exists(filename):
+    if use_cache and os.path.exists(filename):
         print("file " + filename + " already exists")
     else:
-        fn(args)
+        result = fn(args)
         now = time.time() - start_time
         times[name] = [now]
         print(f"{name} time: " + str(now))
+        return result
 
-# %%
 
 # THE GLOBAL SCRIPT STARTS HERE
 
 
 input_file = sys.argv[1]  # this is base_name.json
 
+# For interactive use:
+# os.chdir("/workspaces/case-study-eta-minimization/experiments/triangle")
+# input_file = "triangleRBModel_Poset.json"
+
 base_name = os.path.splitext(input_file)[0]
+
 norm_base_name = os.path.normpath(base_name)
 abs_base_name = os.path.abspath(norm_base_name)
 norm_dir_name = os.path.dirname(abs_base_name)
 output_dir = f'{norm_dir_name}/toolchain_output'
+
+print(input_file,base_name,norm_base_name,abs_base_name,norm_dir_name,output_dir)
+
 
 os.makedirs(output_dir, exist_ok=True)
 
@@ -312,6 +332,8 @@ if not base_name.split('_')[-1] == "Poset":
                    {"poly": input_file, "poset": base_name + ".json"})
 poset_file = base_name + f".json"
 
+
+
 tmp = {"poset": poset_file}
 cached_execute("fakefile.txt", f"loadData", loadData, tmp)
 
@@ -319,6 +341,12 @@ data = tmp["data"]
 
 x = cached_execute(output_dir + "/" + base_name + ".mcrl2", f"poset2mcrl2",
                    poset2mcrl2, {"data": data, "base_name": base_name, "output_dir": output_dir})
+
+def debug():
+    return nx.to_dict_of_dicts(x["lts"])
+
+debug()
+#%%
 
 # generate the lps and get the lps pretty print
 # NOTE: this files must always be recreated, as they are computed twice with different actions.

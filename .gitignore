@@ -4,3 +4,16 @@ experiments/*/toolchain_output/*
 scripts/PolyPoProject/bin
 scripts/PolyPoProject/obj
 experiments/coral/
+experiments/raja/jsonOutput0.json
+experiments/raja/ltsinfo.txt
+experiments/raja/RAJA2-simplified_Poset.json
+experiments/raja/RAJA2-simplified.json
+experiments/raja/jsonOutput0.json
+experiments/raja/ltsinfo.txt
+experiments/raja/RAJA2-simplified_Poset.json
+experiments/raja/RAJA2-simplified.json
+experiments/triangle/jsonOutput0.json
+experiments/triangle/jsonOutput1.json
+experiments/triangle/jsonOutput2.json
+experiments/triangle/ltsinfo.txt
+experiments/triangle/output.tex
