@@ -89,7 +89,6 @@ def poset2mcrl2(args):
         
         for point in tc.nodes:
             for atom in uncovered["valuation"][point]:
-                print(point,atom)
                 result.add_edge(point, point, label="ap_"+atom)  
             # add a self loop using the name of the state as an action
             # this will be renamed into tau later
