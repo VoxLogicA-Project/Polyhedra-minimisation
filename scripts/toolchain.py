@@ -290,7 +290,7 @@ def createJsonFiles(args):
 
 # CACHED EXECUTION
 
-use_cache = False
+use_cache = True #TODO: make this a command line switch, default to True
 
 def cached_execute(filename, name, fn, args):
     start_time = time.time()
@@ -344,7 +344,7 @@ x = cached_execute(output_dir + "/" + base_name + ".mcrl2", f"poset2mcrl2",
 def debug():
     return nx.to_dict_of_dicts(x["lts"])
 
-debug()
+#debug()
 #%%
 
 # generate the lps and get the lps pretty print
