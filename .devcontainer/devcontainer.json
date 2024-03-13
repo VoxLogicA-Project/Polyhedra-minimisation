@@ -22,7 +22,8 @@
         "ms-vscode.cpptools-extension-pack",
         "ms-vscode.live-server",
         "Stephanvs.dot",
-        "tintinweb.graphviz-interactive-preview"
+        "tintinweb.graphviz-interactive-preview",
+        "tomoki1207.pdf"
       ]
     }
   },
