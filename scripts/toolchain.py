@@ -47,6 +47,7 @@ def loadData(args):
     with open(args["poset"]) as f:
         # Load the JSON data into a dictionary
         args["data"] = json.load(f)
+        print(len(args["data"]["points"]))
 
 
 def poset2mcrl2(args):
@@ -195,7 +196,7 @@ def renamelps(args):
 
 def findStates(args):
     print("finding original states...")
-    states = [i for i in range(0, args["points"])]
+    states = [i for i in range(0, args["points"] + 1)]
     with open(args["base"], "r") as infile:
         # read the lps pretty print file lines
         lines = infile.readlines()
@@ -205,12 +206,11 @@ def findStates(args):
             # if the line starts with s, it is the fake label named as the original state
             if len(no_whitespace) > 0 and no_whitespace[0] == 's':
                 # the required index is the final part of the string
-                num_str = no_whitespace[4:-1]
+                num_str = int(re.findall(r'\d+', no_whitespace)[-1])
                 # remove whitespaces from the following line
                 next_no_whitespace = re.sub(r'\s', '', lines[i+1])
-                # convert the final part of the string to int and place it in the list of states
-                # print("B", int(num_str), int(next_no_whitespace[10:-1]))
-                states[int(num_str)] = int(next_no_whitespace[10:-1])
+                # convert the final part of the string to int and place it in the list of states:
+                states[int(num_str)] = int(re.findall(r'\d+', next_no_whitespace)[-1])
     args["states"] = states
 
 
@@ -280,9 +280,9 @@ def createJsonFiles(args):
     for i in range(0, len(classes)):
         for j in range(0, len(pairs)):
             if classes[i] == pairs[j][0]:
-                jsonArrays[i]["class" + str(i)].append("true")
+                jsonArrays[i]["class" + str(i)].append(True)
             else:
-                jsonArrays[i]["class" + str(i)].append("false")
+                jsonArrays[i]["class" + str(i)].append(False)
 
     for i in range(0, len(jsonArrays)):
         with open("jsonOutput" + str(i) + ".json", 'w') as outjson:
