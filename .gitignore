@@ -17,3 +17,5 @@ experiments/triangle/jsonOutput1.json
 experiments/triangle/jsonOutput2.json
 experiments/triangle/ltsinfo.txt
 experiments/triangle/output.tex
+scripts/MazingProject/obj
+VoxLogicA.code-workspace
