@@ -95,6 +95,7 @@ def poset2mcrl2(args):
             # this will be renamed into tau later
             stlabel = "st1_"+point
             result.add_edge(point, point, label=stlabel)
+            result.add_edge(point, point, label="dwn")
             atoms.add(stlabel)
 
         for (point, dest) in tc.edges():
@@ -109,7 +110,7 @@ def poset2mcrl2(args):
                 if dg.has_edge(point, dest):
                     label = "tau"
                     result.add_edge(point, dest, label=label)
-                    result.add_edge(dest, point, label=label)
+                    result.add_edge(dest, point, label=label)                    
             else:
                 label = "chg"
                 result.add_edge(point, dest, label=label)
