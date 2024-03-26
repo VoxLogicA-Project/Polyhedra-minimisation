@@ -33,6 +33,7 @@ RUN apt -y install dotnet-sdk-8.0
 RUN apt -y install htop nano 
 RUN apt -y install screen
 RUN apt install -y graphviz
+RUN apt install -y zip
 
 RUN pip install ipykernel
 

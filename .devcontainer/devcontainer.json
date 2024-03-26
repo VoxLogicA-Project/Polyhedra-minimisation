@@ -23,7 +23,8 @@
         "ms-vscode.live-server",
         "Stephanvs.dot",
         "tintinweb.graphviz-interactive-preview",
-        "tomoki1207.pdf"
+        "tomoki1207.pdf",
+        "Ionide.Ionide-fsharp"
       ]
     }
   },
