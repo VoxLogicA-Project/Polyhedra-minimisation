@@ -79,7 +79,7 @@ def poset2mcrl2(args):
         # Mieke added sorting of LTS states in next line  (2023/06/07)
         # VC: why?
         dg = nx.DiGraph(uncovered["up"])
-        tc = nx.transitive_closure_dag(dg)
+        tc = nx.transitive_closure(dg)
 
         print("-- actual encoding starts here --")
         v = uncovered["valuation"]
@@ -222,7 +222,7 @@ def lps2lts(args):
     run_command("lps2lts  --cached --threads=32 " +
                 args["lps"] + " " + args["lts"])
     run_command("ltsconvert " + args["lts"] + " " + args["lts"] + ".dot")
-    run_command("neato -Tpdf " + args["lts"] + ".dot" + " -o " + args["lts"] + ".pdf" )
+    #run_command("neato -Tpdf " + args["lts"] + ".dot" + " -o " + args["lts"] + ".pdf" )
 
 
 def ltsminimise(args):
@@ -288,6 +288,35 @@ def createJsonFiles(args):
     for i in range(0, len(jsonArrays)):
         with open("jsonOutput" + str(i) + ".json", 'w') as outjson:
             json.dump(jsonArrays[i], outjson, indent=2)
+
+def createModelFiles(args):
+    print("converting to model checker format...")
+    result = subprocess.run(
+        "ltsconvert --out=aut " + args["minimised"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+    stderr_str = result.stdout
+    decoded = stderr_str.decode("utf-8")
+
+    string_list = decoded.split('\n')
+    outDict = {"points" : []}
+    tmpDict = {}
+    for el in string_list:
+        match = re.match(r'\((\d+),("dwn"|"ap.*"),(\d+)\)', el)
+        l =[]
+        if match:
+            #print(match.group(1) + " " + match.group(2))
+            dest = match.group(1) # this is the destination of an "up" transition
+            atom = match.group(2)
+            source = match.group(3)
+            if not source in tmpDict:
+                outDict["points"].append({ "id": source, "up": [], "atoms": []})
+                tmpDict[source] = len(outDict["points"]) - 1
+            else:
+                if not dest in outDict["points"][tmpDict[source]]["up"]:
+                    outDict["points"][tmpDict[source]]["up"].append(dest)
+            if "ap" in atom:
+                outDict["points"][tmpDict[source]]["atoms"].append(atom[4:-1])
+    with open("polyInput_Poset.json", 'w') as outjson:
+        json.dump(outDict, outjson, indent=2)
 
 # CACHED EXECUTION
 
@@ -384,6 +413,9 @@ cached_execute(f"{output_dir}/{base_name}_minimised.lts", f"ltsminimise", ltsmin
 # now we get the ltsinfo and the correspondence between classes and original states
 cached_execute(f"jsonOutput0.json", f"createJsonFiles", createJsonFiles, {
                "minimised": f"{output_dir}/{base_name}_minimised.lts"})
+
+cached_execute(f"modelInput.json", f"createModelFile", createModelFiles, {
+               "minimised": f"{output_dir}/{base_name}_minimised.lts", "input": f"{output_dir}/{base_name}_minimised.json"})
 
 df = ps.DataFrame.from_dict(times, orient="index")
 
