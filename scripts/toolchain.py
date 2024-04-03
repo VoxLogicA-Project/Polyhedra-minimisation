@@ -286,10 +286,9 @@ def createJsonFiles(args):
                 jsonArrays[i]["class" + str(classes[i])].append(True)
             else:
                 jsonArrays[i]["class" + str(classes[i])].append(False)
-
-    for i in range(0, len(jsonArrays)):
-        with open("jsonOutput" + str(i) + ".json", 'w') as outjson:
-            json.dump(jsonArrays[i], outjson, indent=2)
+            with open("jsonOutput" + str(classes[i]) + ".json", 'w') as outjson:
+                json.dump(jsonArrays[i], outjson, indent=2)
+        
 
 def createModelFiles(args):
     print("converting to model checker format...")
