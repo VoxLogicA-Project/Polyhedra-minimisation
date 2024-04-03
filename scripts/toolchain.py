@@ -197,7 +197,7 @@ def renamelps(args):
 
 def findStates(args):
     print("finding original states...")
-    states = [i for i in range(0, args["points"] + 1)]
+    states = [i for i in range(0, args["points"])]
     with open(args["base"], "r") as infile:
         # read the lps pretty print file lines
         lines = infile.readlines()
@@ -264,6 +264,8 @@ def createJsonFiles(args):
         # now assign classes to the original states
         index = states.index(int(splitted[1]))
         pairs[index] = (int(splitted[0]), index)
+    print(states)
+    print(pairs)
 
     # get the correspondence between original states and atoms (don't know if this is needed)
     color_state = [(0, "") for i in range(0, points)]
@@ -276,14 +278,14 @@ def createJsonFiles(args):
     classes_with_duplicates = [i for (i, _) in pairs]
     classes = list(dict.fromkeys(classes_with_duplicates))
 
-    jsonArrays = [{"class" + str(i): []} for i in range(0, len(classes))]
+    jsonArrays = [{"class" + str(classes[i]): []} for i in range(0, len(classes))]
 
     for i in range(0, len(classes)):
         for j in range(0, len(pairs)):
             if classes[i] == pairs[j][0]:
-                jsonArrays[i]["class" + str(i)].append(True)
+                jsonArrays[i]["class" + str(classes[i])].append(True)
             else:
-                jsonArrays[i]["class" + str(i)].append(False)
+                jsonArrays[i]["class" + str(classes[i])].append(False)
 
     for i in range(0, len(jsonArrays)):
         with open("jsonOutput" + str(i) + ".json", 'w') as outjson:
