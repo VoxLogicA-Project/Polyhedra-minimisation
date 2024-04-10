@@ -13,7 +13,7 @@ print("started")
 import json
 import subprocess
 import sys
-import re
+import regex as re
 import os
 import time
 
@@ -213,6 +213,8 @@ def findStates(args):
                 # convert the final part of the string to int and place it in the list of states:
                 states[int(num_str)] = int(re.findall(r'\d+', next_no_whitespace)[-1])
     args["states"] = states
+    with open("statesFile.txt", 'w') as s:
+        json.dump(states,s)
 
 
 def lps2lts(args):
@@ -301,17 +303,24 @@ def createModelFiles(args):
     outDict = {"points" : []}
     tmpDict = {}
     for el in string_list:
-        match = re.match(r'\((\d+),("dwn"|"ap.*"),(\d+)\)', el)
+        match = re.match(r'.*\((\d+),("dwn"|"ap.*"),(\d+)\)', el)
         l =[]
         if match:
-            #print(match.group(1) + " " + match.group(2))
+            #print(match.group(0))
             dest = match.group(1) # this is the destination of an "up" transition
             atom = match.group(2)
             source = match.group(3)
+            if(source == "19"):
+                print("el is ", el, dest, atom)  #+ " " + match.group(2))
             if not source in tmpDict:
+                if(source=="19"):
+                    print("then")
                 outDict["points"].append({ "id": source, "up": [], "atoms": []})
                 tmpDict[source] = len(outDict["points"]) - 1
+                outDict["points"][tmpDict[source]]["up"].append(dest)
             else:
+                if(source=="19"):
+                    print("else")
                 if not dest in outDict["points"][tmpDict[source]]["up"]:
                     outDict["points"][tmpDict[source]]["up"].append(dest)
             if "ap" in atom:
