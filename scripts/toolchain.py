@@ -47,7 +47,7 @@ def loadData(args):
     with open(args["poset"]) as f:
         # Load the JSON data into a dictionary
         args["data"] = json.load(f)
-        print(len(args["data"]["points"]))
+        # print(len(args["data"]["points"]))
 
 
 def poset2mcrl2(args):
@@ -213,8 +213,8 @@ def findStates(args):
                 # convert the final part of the string to int and place it in the list of states:
                 states[int(num_str)] = int(re.findall(r'\d+', next_no_whitespace)[-1])
     args["states"] = states
-    with open("statesFile.txt", 'w') as s:
-        json.dump(states,s)
+    #with open("statesFile.txt", 'w') as s:
+    #    json.dump(states,s)
 
 
 def lps2lts(args):
@@ -241,8 +241,8 @@ def createJsonFiles(args):
         "ltsinfo -l " + args["minimised"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     stderr_str = result.stderr
     # parse ltsinfo.txt and decode it
-    with open("ltsinfo.txt", 'wb') as infofile:
-        infofile.write(stderr_str)
+    #with open("ltsinfo.txt", 'wb') as infofile:
+    #    infofile.write(stderr_str)
     decoded = stderr_str.decode("utf-8")
 
     pairs = [(0, 0) for i in range(0, points)]
@@ -266,8 +266,8 @@ def createJsonFiles(args):
         # now assign classes to the original states
         index = states.index(int(splitted[1]))
         pairs[index] = (int(splitted[0]), index)
-    print(states)
-    print(pairs)
+    # print(states)
+    # print(pairs)
 
     # get the correspondence between original states and atoms (don't know if this is needed)
     color_state = [(0, "") for i in range(0, points)]
@@ -282,13 +282,16 @@ def createJsonFiles(args):
 
     jsonArrays = [{"class" + str(classes[i]): []} for i in range(0, len(classes))]
 
+    filename = args["output"] + "/jsonOutput0.json"
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
+
     for i in range(0, len(classes)):
         for j in range(0, len(pairs)):
             if classes[i] == pairs[j][0]:
                 jsonArrays[i]["class" + str(classes[i])].append(True)
             else:
                 jsonArrays[i]["class" + str(classes[i])].append(False)
-            with open("jsonOutput" + str(classes[i]) + ".json", 'w') as outjson:
+            with open(args["output"] + "/jsonOutput" + str(classes[i]) + ".json", 'w') as outjson:
                 json.dump(jsonArrays[i], outjson, indent=2)
         
 
@@ -310,22 +313,24 @@ def createModelFiles(args):
             dest = match.group(1) # this is the destination of an "up" transition
             atom = match.group(2)
             source = match.group(3)
-            if(source == "19"):
-                print("el is ", el, dest, atom)  #+ " " + match.group(2))
+            # if(source == "19"):
+            #     print("el is ", el, dest, atom)  #+ " " + match.group(2))
             if not source in tmpDict:
-                if(source=="19"):
-                    print("then")
+                #if(source=="19"):
+                #    print("then")
                 outDict["points"].append({ "id": source, "up": [], "atoms": []})
                 tmpDict[source] = len(outDict["points"]) - 1
                 outDict["points"][tmpDict[source]]["up"].append(dest)
             else:
-                if(source=="19"):
-                    print("else")
+                #if(source=="19"):
+                #    print("else")
                 if not dest in outDict["points"][tmpDict[source]]["up"]:
                     outDict["points"][tmpDict[source]]["up"].append(dest)
             if "ap" in atom:
                 outDict["points"][tmpDict[source]]["atoms"].append(atom[4:-1])
-    with open("polyInput_Poset.json", 'w') as outjson:
+    filename = args["output"] + "polyInput_Poset.json"
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
+    with open(filename, 'w') as outjson:
         json.dump(outDict, outjson, indent=2)
 
 # CACHED EXECUTION
@@ -421,16 +426,18 @@ cached_execute(f"{output_dir}/{base_name}_minimised.lts", f"ltsminimise", ltsmin
                "base": f"{output_dir}/{base_name}_renamed.lts", "minimised": f"{output_dir}/{base_name}_minimised.lts"})
 
 # now we get the ltsinfo and the correspondence between classes and original states
-cached_execute(f"jsonOutput0.json", f"createJsonFiles", createJsonFiles, {
-               "minimised": f"{output_dir}/{base_name}_minimised.lts"})
+cached_execute(f"{output_dir}/classes/jsonOutput0.json", f"createJsonFiles", createJsonFiles, {
+               "minimised": f"{output_dir}/{base_name}_minimised.lts", "output":  f"{output_dir}/classes"})
 
-cached_execute(f"modelInput.json", f"createModelFile", createModelFiles, {
-               "minimised": f"{output_dir}/{base_name}_minimised.lts", "input": f"{output_dir}/{base_name}_minimised.json"})
+cached_execute(f"{output_dir}/polyInput_Poset.json", f"createModelFile", createModelFiles, {
+               "minimised": f"{output_dir}/{base_name}_minimised.lts", "input": f"{output_dir}/{base_name}_minimised.json",
+               "output" : f"{output_dir}/minimised_model/"})
 
 df = ps.DataFrame.from_dict(times, orient="index")
 
 print("---")
 print(df)
 
-with open(sys.argv[2], 'w') as outfile:
+timesfile = f"{output_dir}/" + sys.argv[2]
+with open(timesfile, 'w') as outfile:
     df.to_latex(outfile, header=False)
