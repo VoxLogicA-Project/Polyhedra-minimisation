@@ -14,6 +14,7 @@ with open(sys.argv[2]) as g:
 for atomName in atomsData:
    print(atomName)
    index = 0
+   # Optional: below select which atoms to insert
    if atomName in ["b2","b3","b4","b5","b6","b7","b8","b9","b10"]:
       for ap in atomsData[atomName]:
           if ap:
