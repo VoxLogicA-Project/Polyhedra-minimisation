@@ -280,20 +280,28 @@ def createJsonFiles(args):
     classes_with_duplicates = [i for (i, _) in pairs]
     classes = list(dict.fromkeys(classes_with_duplicates))
 
-    jsonArrays = [{"class" + str(classes[i]): []} for i in range(0, len(classes))]
-
-    filename = args["output"] + "/jsonOutput0.json"
+    filename = args["output"] + "/jsonOutputAll.json"
     os.makedirs(os.path.dirname(filename), exist_ok=True)
-
+    
+    jsonDict =  {}
     for i in range(0, len(classes)):
+        jsonDict["class" + str(classes[i])] = []
+    # jsonArrays = [{"class" + str(classes[i]): []} for i in range(0, len(classes))]
+
+    # for i in range(0, len(classes)):
         for j in range(0, len(pairs)):
             if classes[i] == pairs[j][0]:
-                jsonArrays[i]["class" + str(classes[i])].append(True)
+                jsonDict["class" + str(classes[i])].append(True)
             else:
-                jsonArrays[i]["class" + str(classes[i])].append(False)
-            with open(args["output"] + "/jsonOutput" + str(classes[i]) + ".json", 'w') as outjson:
-                json.dump(jsonArrays[i], outjson, indent=2)
-        
+                jsonDict["class" + str(classes[i])].append(False)
+            # with open(args["output"] + "/jsonOutput" + str(classes[i]) + ".json", 'w') as outjson:
+            #     json.dump(jsonArrays[i], outjson, indent=2)
+
+    # for i in range(0, len(classes)):
+    #     jsonDict["class" + str(i)] = jsonArrays[i].values
+    print(jsonDict)
+    with open(args["output"] + "/jsonOutputAll.json", 'w') as outjson:
+                json.dump(jsonDict, outjson, indent=2)
 
 def createModelFiles(args):
     print("converting to model checker format...")
@@ -426,7 +434,7 @@ cached_execute(f"{output_dir}/{base_name}_minimised.lts", f"ltsminimise", ltsmin
                "base": f"{output_dir}/{base_name}_renamed.lts", "minimised": f"{output_dir}/{base_name}_minimised.lts"})
 
 # now we get the ltsinfo and the correspondence between classes and original states
-cached_execute(f"{output_dir}/classes/jsonOutput0.json", f"createJsonFiles", createJsonFiles, {
+cached_execute(f"{output_dir}/classes/jsonOutputAll.json", f"createJsonFiles", createJsonFiles, {
                "minimised": f"{output_dir}/{base_name}_minimised.lts", "output":  f"{output_dir}/classes"})
 
 cached_execute(f"{output_dir}/polyInput_Poset.json", f"createModelFile", createModelFiles, {
@@ -438,6 +446,6 @@ df = ps.DataFrame.from_dict(times, orient="index")
 print("---")
 print(df)
 
-timesfile = f"{output_dir}/" + sys.argv[2]
-with open(timesfile, 'w') as outfile:
-    df.to_latex(outfile, header=False)
+# timesfile = f"{output_dir}/" + sys.argv[2]
+# with open(timesfile, 'w') as outfile:
+#     df.to_latex(outfile, header=False)
