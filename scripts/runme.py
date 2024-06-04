@@ -4,7 +4,6 @@
 # the experiment's folder and invokes resultTransformer.
 # At this point, the user can visualise the result on 
 # PolyVisualiser.
-import json
 import os
 import argparse
 import subprocess
