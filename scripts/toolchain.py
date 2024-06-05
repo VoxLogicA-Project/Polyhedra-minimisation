@@ -299,7 +299,6 @@ def createJsonFiles(args):
 
     # for i in range(0, len(classes)):
     #     jsonDict["class" + str(i)] = jsonArrays[i].values
-    print(jsonDict)
     with open(args["output"] + "/jsonOutputAll.json", 'w') as outjson:
                 json.dump(jsonDict, outjson, indent=2)
 
@@ -437,7 +436,7 @@ cached_execute(f"{output_dir}/{base_name}_minimised.lts", f"ltsminimise", ltsmin
 cached_execute(f"{output_dir}/classes/jsonOutputAll.json", f"createJsonFiles", createJsonFiles, {
                "minimised": f"{output_dir}/{base_name}_minimised.lts", "output":  f"{output_dir}/classes"})
 
-cached_execute(f"{output_dir}/polyInput_Poset.json", f"createModelFile", createModelFiles, {
+cached_execute(f"{output_dir}/minimised_model/polyInput_Poset.json", f"createModelFile", createModelFiles, {
                "minimised": f"{output_dir}/{base_name}_minimised.lts", "input": f"{output_dir}/{base_name}_minimised.json",
                "output" : f"{output_dir}/minimised_model/"})
 

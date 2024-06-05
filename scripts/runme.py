@@ -17,7 +17,7 @@ experimentPath = "../experiments/" + experiment
 os.chdir(experimentPath)
 
 subprocess.run("../../scripts/toolchain.py " + experiment + "Model.json", shell=True)
-subprocess.run("mv polyInput_Poset.json ../../PolyLogicA", shell=True)
+subprocess.run("cp toolchain_output/minimised_model/polyInput_Poset.json ../../PolyLogicA", shell=True)
 os.chdir("../../PolyLogicA")
 subprocess.run(f'''./bin/release/net8.0/linux-x64/PolyLogicA {experiment}.imgql''', shell=True)
 subprocess.run(f'''mv result.json ../experiments/{experimentPath}''', shell=True)
