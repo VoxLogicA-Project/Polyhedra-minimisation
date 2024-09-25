@@ -176,7 +176,7 @@ def poset2mcrl2(args):
 
 
 def poly2poset(args): #TODO: switch to the release version of PolyPo (not Debug) and also compile it if not present
-    run_command(f"../../scripts/PolyPoProject/bin/Debug/net8.0/PolyPoProject " +
+    run_command(f"../../scripts/PolyPoProject/bin/Release/net8.0/PolyPoProject " +
                 args["poly"] + " " + args["poset"])
 
 
