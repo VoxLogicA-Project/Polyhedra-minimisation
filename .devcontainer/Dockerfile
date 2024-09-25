@@ -11,7 +11,6 @@ RUN apt -y install wget
 RUN rm -f /usr/lib/python3*/EXTERNALLY-MANAGED
 RUN pip install pandas networkx 
 
-
 WORKDIR /root 
 RUN git clone https://github.com/mCRL2org/mCRL2.git
 
@@ -37,9 +36,14 @@ RUN apt install -y zip
 
 RUN pip install ipykernel
 
+RUN cd ..
+RUN git clone -b Posets --single-branch https://github.com/vincenzoml/VoxLogicA.git
+RUN cd VoxLogicA/src && make
+
 RUN echo "* soft stack 8388608" >> /etc/security/limits.conf
 RUN echo "* hard stack 8388608" >> /etc/security/limits.conf
 
 
 RUN echo root:root | chpasswd 
 
+WORKDIR /workspaces/case-study-eta-minimization 
