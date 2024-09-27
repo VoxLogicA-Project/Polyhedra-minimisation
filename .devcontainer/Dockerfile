@@ -39,7 +39,7 @@ RUN pip install ipykernel
 RUN pip install regex
 RUN cd ..
 RUN git clone -b Posets --single-branch https://github.com/vincenzoml/VoxLogicA.git
-RUN cd VoxLogicA/src && make
+RUN cd VoxLogicA/src && make release
 
 RUN echo "* soft stack 8388608" >> /etc/security/limits.conf
 RUN echo "* hard stack 8388608" >> /etc/security/limits.conf
