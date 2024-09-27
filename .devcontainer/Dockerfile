@@ -36,6 +36,7 @@ RUN apt -y install screen
 RUN apt install -y graphviz
 RUN apt install -y zip
 RUN pip install ipykernel
+RUN pip install regex
 RUN cd ..
 RUN git clone -b Posets --single-branch https://github.com/vincenzoml/VoxLogicA.git
 RUN cd VoxLogicA/src && make
