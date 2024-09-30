@@ -7,6 +7,9 @@ This artifact contains all the files and scripts needed in order to reproduce th
 
 In the follwing, we explain in detail how to reproduce results and visualise them, using the triangleRB experiment as a running example.
 
+The artifact is provided with a Dockerfile that starts a new container with all required dependencies. To start the container, it suffices to run the script 
+`run_container.sh` in the main directory.
+
 ## PolyVisualiser
 
 In order to visualise results obtained running the two steps, we provide users with a `PolyVisualiser` application. `PolyVisualiser` accepts as input a model (in the json format), a colour file
@@ -22,7 +25,7 @@ propositions hold.
 
 ## Minimisation
 
-Minimisation of the model is performed by the `toolchain.py` script, that takes as input a model file. In order to run the script, one must access the experiment folder and run it
+Minimisation of the model is performed by the `toolchain.py` script, that takes as input a model file, performs the encoding and calls `mcrl2` operations. In order to run the script, one must access the experiment folder and run it
 from command line. In our example:
 
 `cd experiments/triangleRB` \
@@ -40,8 +43,28 @@ compare results with those obtained by performing model checking on the original
 ## Model checking
 
 As said, the model checker `PolyLogicA` accepts as an input a model poset file, plus an imgql specification. It is possible to run analysis on both the original and the minimised model
-(in our example, `triangleRBModel_Poset.json` and `polyInput_Poset.json`). The folder of `PolyLogicA` contains an imgql specification, named triangleRBSpec.imgql, that can be used and 
-modified to run analysis. In order to perform this step, one must use the following commands:
+(in our example, `triangleRBModel_Poset.json` and `polyInput_Poset.json`).
+
+First of all, it is necessary to copy the `PolyLogicA` binaries in the main directory with the following commands:
+
+`mkdir PolyLogicA` \
+`cp -r ~/VoxLogicA/src/bin PolyLogicA`
+
+Then we can copy the `TriangleRB.imgql` file, containing the actual analysis, in the `PolyLogicA` directory:
+
+`cp scripts/trianlgeRB.imgql PolyLogicA`
+
+as well as the poset files:
+
+`cp ../experiments/triangleRB/triangleRBModel_Poset.json PolyLogicA` \
+`cp ../experiments/triangleRB/toolchain_output/polyInput_Poset.json PolyLogicA`
+
+Now we can run model checking:
+
+cd PolyLogicA
+./bin/release/net8.0/linux-x64/PolyLogicA triangleRBSpec.imgql
+
+In order to perform this step, one must use the following commands:
     mv triangleRBModel_Poset.json polyInput_Poset.json ../PolyLogicA
     cd ../PolyLogicA
     ./bin/release/net8.0/linux-x64/PolyLogicA triangleRBSpec.imgql

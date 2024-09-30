@@ -1,0 +1,9 @@
+load triangle = "polyInput_Poset.json"
+
+let red = ap("red")
+let blue = ap("blue")
+
+save "Red" red
+save "nearBlue" N(blue)
+save "orBlueRed" blue | red
+save "gammaRedGreen" gamma(red,blue)
