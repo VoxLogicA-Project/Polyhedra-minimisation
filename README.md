@@ -1,39 +1,46 @@
 # Eta minimisation
 
 This artifact contains all the files and scripts needed in order to reproduce the results shown in the paper. Experiments consist of two separated steps:
-    1: the minimisation step, where the original model is translated into a poset and minimised;
-    2: the model checking step, where model checking is performed over the minimised model.
-In the follwing, we explain in details how to reproduce results and visualise them, using the triangleRB experiment as a running example.
+
+1. the minimisation step, where the original model is translated into a poset and minimised;
+2. the model checking step, where model checking is performed over the minimised model.
+
+In the follwing, we explain in detail how to reproduce results and visualise them, using the triangleRB experiment as a running example.
 
 ## PolyVisualiser
 
-In order to visualise results obtained running the two steps, we provide users with a PolyVisualiser. The PolyVisualiser accepts as input a model (in the json format), a colour file
-listing all atomic propositions contained in the model and and atom file, containing truth values of atomic propositions and possibly formulas.
-In order to launch the PolyVisualiser webapp it suffices to access the application folder, open a terminal and launch a server. For instance, using php, you can run the following
+In order to visualise results obtained running the two steps, we provide users with a `PolyVisualiser` application. `PolyVisualiser` accepts as input a model (in the json format), a colour file
+listing all atomic propositions contained in the model, and an atom file, containing truth values of atomic propositions and possibly formulas.
+In order to launch the `PolyVisualiser` webapp it suffices to access the application folder, open a terminal and launch a server. For instance, using `php`, you can run the following
 command:
-    php -S localhost:5000
-and open a browser to the page 127.0.0.1:5000/polyVisualiser.html. Once you have loaded the required files (in our case triangleRBModel.json, triangleRBColors.json, triangleRBAtoms.json),
+
+`php -S localhost:5000`
+
+and open a browser to the page `127.0.0.1:5000/polyVisualiser.html`. Once you loaded the required files (in our case `triangleRBModel.json`, `triangleRBColors.json`, `triangleRBAtoms.json`),
 you will be able to visualise the model and its properties. Using the Property menu, and selecting the Show Property option, it will be possible to visualise where different atomic 
 propositions hold.
 
 ## Minimisation
 
-Minimisation of the model is performed by the toolchain.py script, that takes as an input a model file. In order to run the script, one must access the experiment folder and run it
+Minimisation of the model is performed by the `toolchain.py` script, that takes as input a model file. In order to run the script, one must access the experiment folder and run it
 from command line. In our example:
-    cd experiments/triangleRB
-    ../../scripts/toolchain.py triangleRBModel.json
-The result of the execution will be a json file containing a dictionary of the equivalence classes, in the form array of booleans. The length of each array corresponds to the number of
-states of the original poset model: let classX be the array of booleans representing the class labelled with X, classX[i] = True if and only if the state i is included in the class X.
-The json file can be loaded in PolyVisualiser as an atom file, in order to graphically visualise the equivalence classes. If there is no model poset file in the experiment folder, the
+
+`cd experiments/triangleRB` \
+`../../scripts/toolchain.py triangleRBModel.json`
+
+The result of the execution will be a json file containing a dictionary of the equivalence classes, in the form of an array of booleans. The length of each array corresponds to the number of
+states of the original poset model. Let `classX` be the array of booleans representing the class labelled with `X`: then `classX[i] = True` if and only if the state `i` is included in the class `X`.
+
+The json file can be loaded in `PolyVisualiser` as an atom file, in order to graphically visualise the equivalence classes. If there is no model poset file in the experiment folder, the
 script generates a model poset file (in the format experimentName_Poset.json) that is needed to perform the encoding as an LTS and that can be used as an input for the model
-checker PolyLogicA. In our case, the generated file will be triangleRBModel_Poset.json.
-Moreover, the toolchain script generates a polyInput_Poset.json file, containing the minimised model poset. It is possible to run model checking on this minimised model, and to 
+checker `PolyLogicA`. In our case, the generated file will be `triangleRBModel_Poset.json`.
+Finally, the toolchain script generates a `polyInput_Poset.json` file, containing the minimised model poset. It is possible to run model checking on this minimised model, and to 
 compare results with those obtained by performing model checking on the original model.
 
 ## Model checking
 
-As said, the model checker PolyLogicA accepts as an input a model poset file, plus an imgql specification. It is possible to run analysis on both the original and the minimised model
-(in our example, triangleRBModel_Poset.json and polyInput_Poset.json). The folder of PolyLogicA contains an imgql specification, named triangleRBSpec.imgql, that can be used and 
+As said, the model checker `PolyLogicA` accepts as an input a model poset file, plus an imgql specification. It is possible to run analysis on both the original and the minimised model
+(in our example, `triangleRBModel_Poset.json` and `polyInput_Poset.json`). The folder of `PolyLogicA` contains an imgql specification, named triangleRBSpec.imgql, that can be used and 
 modified to run analysis. In order to perform this step, one must use the following commands:
     mv triangleRBModel_Poset.json polyInput_Poset.json ../PolyLogicA
     cd ../PolyLogicA
