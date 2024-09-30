@@ -96,7 +96,12 @@ In order to ease the process of reproducing the maze experiments proposed in the
 
 `cd scripts`
 `python3 minimisedExperiments.py`
-The script performs all the aforementioned steps (except the visualisation in PolyVisualiser) for the maze test suite, namely 3x3x3, 3x5x3, 3x5x4, 5x5x5.
+
+The script performs minimisation for the maze test suite, namely 3x3x3, 3x5x3, 3x5x4, 5x5x5. We can now again provide the `result.json` file to the `resultTransformer` tool, as an example:
+
+`python3 resultTransformer.py --classesFile ../experiments/3DMAZE_3x3x3_G1W_LC_V2/toolchain_output/classes/jsonOutputAll.json --experiment 3DMAZE_3x3x3_G1W_LC_V2 --results ../experiments/3DMAZE_3x3x3_G1W_LC_V2/result.json`
+
+We obtain a suitable atom file to be used in the `PolyVisualizer` tool for comparison.
 
 # Elements
 
