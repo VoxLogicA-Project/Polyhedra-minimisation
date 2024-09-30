@@ -16,7 +16,7 @@ for root, dirs, files in os.walk("experiments"):
         try:
             shutil.rmtree(root + "/" + name + "/toolchain_output")
             shutil.rmtree(root + "/" + name + "/results")
-            shutil.remove(root + "/" + name + "/results.json")
+            os.remove(root + "/" + name + "/results.json")
         except OSError as e:
             pass
 

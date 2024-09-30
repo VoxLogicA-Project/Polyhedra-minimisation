@@ -18,8 +18,8 @@ let threeStepsToWhite = eta((green | eta(corridor,twoStepsToWhite)), twoStepsToW
 let phi1 = eta((green | eta(corridor,white)),white)
 let phi2 = eta((green | eta(corridor,oneStepToWhite)), oneStepToWhite)
 
-save "green" green
-save "white" white
-save "corr" corridor
+save "G" green
+save "W" white
+save "corridor" corridor
 save "phi1" phi1
 save "phi2" phi2
