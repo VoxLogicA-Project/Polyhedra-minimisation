@@ -1,9 +1,11 @@
+//load triangle = "triangleRBModel_Poset.json"
 load triangle = "polyInput_Poset.json"
 
 let red = ap("red")
 let blue = ap("blue")
 
-save "Red" red
+save "blue" blue
+save "red" red
 save "nearBlue" N(blue)
 save "orBlueRed" blue | red
-save "gammaRedGreen" gamma(red,blue)
+save "gammaRedBlue" gamma(red,blue)

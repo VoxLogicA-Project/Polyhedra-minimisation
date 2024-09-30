@@ -10,17 +10,19 @@ In the follwing, we explain in detail how to reproduce results and visualise the
 The artifact is provided with a Dockerfile that starts a new container with all required dependencies. To start the container, it suffices to run the script 
 `run_container.sh` in the main directory.
 
+All the proposed experiments are contained in the `experiments` folder. All the files required to run the triangleRB example are thus contained in the `experiments/triangleRB` folder.
+
 ## PolyVisualiser
 
 In order to visualise results obtained running the two steps, we provide users with a `PolyVisualiser` application. `PolyVisualiser` accepts as input a model (in the json format), a colour file
-listing all atomic propositions contained in the model, and an atom file, containing truth values of atomic propositions and possibly formulas.
-In order to launch the `PolyVisualiser` webapp it suffices to access the application folder, open a terminal and launch a server. For instance, using `php`, you can run the following
+listing all the atomic propositions contained in the model, and an atom file, containing truth values of atomic propositions and possibly formulas.
+In order to launch the `PolyVisualiser` webapp it suffices to access the application folder, open a terminal and launch a server. For instance, using `python`, we can run the following
 command:
 
-`php -S localhost:5000`
+`python3 -m http.server`
 
-and open a browser to the page `127.0.0.1:5000/polyVisualiser.html`. Once you loaded the required files (in our case `triangleRBModel.json`, `triangleRBColors.json`, `triangleRBAtoms.json`),
-you will be able to visualise the model and its properties. Using the Property menu, and selecting the Show Property option, it will be possible to visualise where different atomic 
+and open a browser to the page `127.0.0.1:8000/polyVisualiser.html`. Once we load the required files (in our case `triangleRBModel.json`, `triangleRBColors.json`, `triangleRBAtoms.json`),
+we will be able to visualise the model and its properties. Using the Property menu, and selecting the Show Property option, it will be possible to visualise where different atomic 
 propositions hold.
 
 ## Minimisation
@@ -31,11 +33,11 @@ from command line. In our example:
 `cd experiments/triangleRB` \
 `../../scripts/toolchain.py triangleRBModel.json`
 
-The result of the execution will be a json file containing a dictionary of the equivalence classes, in the form of an array of booleans. The length of each array corresponds to the number of
+The result of the execution (stored in the `toolchain_output/classes` folder) will be a JSON file containing a dictionary of the equivalence classes, in the form of an array of booleans. The length of each array corresponds to the number of
 states of the original poset model. Let `classX` be the array of booleans representing the class labelled with `X`: then `classX[i] = True` if and only if the state `i` is included in the class `X`.
 
 The json file can be loaded in `PolyVisualiser` as an atom file, in order to graphically visualise the equivalence classes. If there is no model poset file in the experiment folder, the
-script generates a model poset file (in the format experimentName_Poset.json) that is needed to perform the encoding as an LTS and that can be used as an input for the model
+script generates a model poset file (in the format `experimentName_Poset.json`) that is needed to perform the encoding as an LTS and that can be used as an input for the model
 checker `PolyLogicA`. In our case, the generated file will be `triangleRBModel_Poset.json`.
 Finally, the toolchain script generates a `polyInput_Poset.json` file, containing the minimised model poset. It is possible to run model checking on this minimised model, and to 
 compare results with those obtained by performing model checking on the original model.
@@ -45,46 +47,55 @@ compare results with those obtained by performing model checking on the original
 As said, the model checker `PolyLogicA` accepts as an input a model poset file, plus an imgql specification. It is possible to run analysis on both the original and the minimised model
 (in our example, `triangleRBModel_Poset.json` and `polyInput_Poset.json`).
 
-First of all, it is necessary to copy the `PolyLogicA` binaries in the main directory with the following commands:
+First of all, it is necessary to copy the `PolyLogicA` binaries in the main directory with the following commands from the main directory:
 
+`cd ../..` \
 `mkdir PolyLogicA` \
 `cp -r ~/VoxLogicA/src/bin PolyLogicA`
 
-Then we can copy the `TriangleRB.imgql` file, containing the actual analysis, in the `PolyLogicA` directory:
+Then we can copy the `triangleRB.imgql` file, containing the actual analysis, in the `PolyLogicA` directory:
 
-`cp scripts/trianlgeRB.imgql PolyLogicA`
+`cp scripts/triangleRB.imgql PolyLogicA`
 
 as well as the poset files:
 
-`cp ../experiments/triangleRB/triangleRBModel_Poset.json PolyLogicA` \
-`cp ../experiments/triangleRB/toolchain_output/polyInput_Poset.json PolyLogicA`
+`cp experiments/triangleRB/triangleRBModel_Poset.json PolyLogicA` \
+`cp experiments/triangleRB/toolchain_output/minimised_model/polyInput_Poset.json PolyLogicA`
+
+The analysis contains two `load` commands: one can decomment the `load` command containing the poset to be analysed. For instance:
+
+`load triangle = "triangleRBModel_Poset.json"` \
+`//load triangle = "polyInput_Poset.json"`
+
+loads the original model.
 
 Now we can run model checking:
 
-cd PolyLogicA
-./bin/release/net8.0/linux-x64/PolyLogicA triangleRBSpec.imgql
+`cd PolyLogicA` \
+`./bin/release/net8.0/linux-x64/PolyLogicA triangleRB.imgql`
 
-In order to perform this step, one must use the following commands:
-    mv triangleRBModel_Poset.json polyInput_Poset.json ../PolyLogicA
-    cd ../PolyLogicA
-    ./bin/release/net8.0/linux-x64/PolyLogicA triangleRBSpec.imgql
-The execution of these commands generates a file named result.json, again containing json arrays of booleans. Being prop the array representing the property prop, prop[i] = True if
-and only if the property prop is true at state i.
+The execution of these commands generates a file named `result.json`, containing JSON arrays of booleans. Being `prop` the array representing the property prop, `prop[i] = True` if
+and only if the property prop is true at state `i`.
 While the result file generated by running analysis on the original model poset has the same number of states as the original model, this is not the case for the result file
-generated by running analysis on the minimised model. To overcome this issue, we provide users with a resultTransform.py script, that takes care of align the number of states of 
-the result file with that of the original model, in such a way that it is possible to use results as an atom file in the polyVisualiser. The resultTransform script takes as input 
-the directory containing the jsonOutputAll.json file and the result file from the model checker. In our case:
-    cd ../experiments/triangleRB
-    mv ../PolyLogicA/result.json .
-    python3 resultTransform.py toolchain_output/classes result.json
-The script creates a directory results containing the file originalResults.json, namely an atom file whose size is compatible with that of the original poset model, and that thus can
-be used as an atom file in the PolyVisualiser. It is hence possible to compare the results of the model checking procedure on both the original model and the minimised one.
+generated by running analysis on the minimised model. To overcome this issue, we provide users with a `resultTransformer.py` script, that takes care of align the number of states of 
+the result file with that of the original model, in such a way that it is possible to use results as an atom file in the `polyVisualiser`. The `resultTransformer.py` script takes as input 
+the `jsonOutputAll.json` file and the result file from the model checker, together with the name of the experiment. We can move for convenience the result file into the example directory:
 
-## Easy procedure
+`mv result.json ../experiments/triangleRB`
 
-In order to ease the process, we also provide a python script that performs all the aforementioned steps. This can be invoked as follows:
-    cd scripts
-    python3 minimisedExperiments.py
+Now we can run:
+`cd ../scripts`
+`python3 resultTransformer.py --classesFile ../experiments/triangleRB/toolchain_output/classes/jsonOutputAll.json --experiment triangleRB --results ../experiments/triangleRB/result.json`
+
+The script creates a directory `..experiments/triangleRB/results` containing the file `originalResults.json`, namely an atom file whose size is compatible with that of the original poset model, and that thus can
+be used as an atom file in the `PolyVisualiser`. It is hence possible to compare the results of the model checking procedure on both the original model and the minimised one.
+
+## Automated experiments
+
+In order to ease the process of reproducing the maze experiments proposed in the paper, we also provide a python script that performs all the aforementioned steps at once. This can be run as follows from the main directory:
+
+`cd scripts`
+`python3 minimisedExperiments.py`
 The script performs all the aforementioned steps (except the visualisation in PolyVisualiser) for the maze test suite, namely 3x3x3, 3x5x3, 3x5x4, 5x5x5.
 
 # Elements
@@ -112,17 +123,3 @@ Output files are organised in subfolders. /toolchain_output contains all the int
 ## ResultTransformer.py
 
 In order to get a result file containing the right number of states, we wrote a resultTransformer script. It takes as input the result of the model checking procedure and the JSon files generated by the toolchain. The script parses the results and computes the or of all the classes where a formula is true, recovering them from the JSon files. The obtained files, stored in the folder /toolchain_output/results, can be now used to visualise the result of the model checking procedure in PolyVisualiser.
-
-# Running example: triangle
-
-## Minimise the triangle
-
-Explain triangle minimisation.
-
-## Model check the minimised model
-
-Explain model checking phase.
-
-## Transform and compare results
-
-Explain how one can transform the results to visualise them using the polyVisualiser.
