@@ -94,7 +94,7 @@ be used as an atom file in the `PolyVisualiser`. It is hence possible to compare
 
 In order to ease the process of reproducing the maze experiments proposed in the paper, we also provide a python script that performs all the aforementioned steps at once. This can be run as follows from the main directory:
 
-`cd scripts`
+`cd scripts` \
 `python3 minimisedExperiments.py`
 
 The script performs minimisation for the maze test suite, namely 3x3x3, 3x5x3, 3x5x4, 5x5x5. We can now again provide the `result.json` file to the `resultTransformer` tool, as an example:
