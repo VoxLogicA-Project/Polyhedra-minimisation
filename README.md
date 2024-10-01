@@ -90,6 +90,10 @@ Now we can run:
 The script creates a directory `..experiments/triangleRB/results` containing the file `originalResults.json`, namely an atom file whose size is compatible with that of the original poset model, and that thus can
 be used as an atom file in the `PolyVisualiser`. It is hence possible to compare the results of the model checking procedure on both the original model and the minimised one.
 
+After completing experiments, it is possible to clean all the directories by running the following:
+
+`python3 cleanall.py`
+
 ## Automated experiments
 
 In order to facilitate the process of reproducing the maze experiments proposed in the paper, we also provide a python script that performs all the aforementioned steps at once. This can be run as follows from the main directory:
