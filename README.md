@@ -84,7 +84,8 @@ the `jsonOutputAll.json` file and the result file from the model checker, togeth
 `mv result.json ../experiments/triangleRB`
 
 Now we can run:
-`cd ../scripts`
+
+`cd ../scripts` \
 `python3 resultTransformer.py --classesFile ../experiments/triangleRB/toolchain_output/classes/jsonOutputAll.json --experiment triangleRB --results ../experiments/triangleRB/result.json`
 
 The script creates a directory `..experiments/triangleRB/results` containing the file `originalResults.json`, namely an atom file whose size is compatible with that of the original poset model, and that thus can
