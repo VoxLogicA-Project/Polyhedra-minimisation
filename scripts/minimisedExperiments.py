@@ -44,4 +44,4 @@ def runExperiment(experiment):
 runExperiment("3DMAZE_3x3x3_G1W_LC_V2")
 runExperiment("3DMAZE_3x5x3_G1W_LC_V2")
 runExperiment("3DMAZE_3x5x4_G1W_LC_V2")
-runExperiment("3DMAZE_5x5x5_G1W_LC_V2")
+# runExperiment("3DMAZE_5x5x5_G1W_LC_V2")

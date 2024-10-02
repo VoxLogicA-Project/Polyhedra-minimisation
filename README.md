@@ -107,6 +107,8 @@ The script performs minimisation for the maze test suite, namely 3x3x3, 3x5x3, 3
 
 We obtain a suitable atom file to be used in the `PolyVisualizer` tool for comparison.
 
+WARNING: the line that launches the experiment `3DMAZE_3x3x3_G1W_LC_V2` is commented in the file, as this requires high computational resources (it runs in ~1400s on a machine equipped with with an Intel(R) Core(TM) i9-9900K CPU @ 3.60 GHz (8 cores, 16 threads, 32GB RAM)). If you want to run this experiment, you can just decomment this line.
+
 # Elements
 
 ## Toolchain.py
