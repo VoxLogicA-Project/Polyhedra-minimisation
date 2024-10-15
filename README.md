@@ -28,7 +28,7 @@ we will be able to visualise the model and its properties. Using the Property me
 
 First of all, we have to compile the PolyPoProject software using `dotnet`. This is needed in order to transform a polyhedral model into a poset model. We can do so via the following commands:
 
-`cd scripts/PolyPoProject`
+`cd scripts/PolyPoProject` \
 `dotnet publish`
 
 Minimisation of the model is performed by the `toolchain.py` script, that takes as input a model file, performs the encoding and calls MCRL2 operations. In order to run the script, one must access the experiment folder and run it
