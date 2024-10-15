@@ -31,11 +31,12 @@ First of all, we have to compile the PolyPoProject software using `dotnet`. This
 `cd scripts/PolyPoProject` \
 `dotnet publish`
 
-Minimisation of the model is performed by the `toolchain.py` script, that takes as input a model file, performs the encoding and calls MCRL2 operations. In order to run the script, one must access the experiment folder and run it
-from command line. In our example:
+Minimisation of the model is performed by the `toolchain.py` script, that takes as input a model file, performs the encoding and calls MCRL2 operations. In order to run the script, one must access the experiment folder and run it from command line. There is also the possibility to perform an optimisation on the triangle example, so we can provide the option `--optimise 1` from command line. In our example:
 
 `cd ../../experiments/triangleRB` \
-`../../scripts/toolchain.py triangleRBModel.json`
+`../../scripts/toolchain.py --file triangleRBModel.json --optimise 1`
+
+Note that, in this case, the name of the model is `dirName` + `Model.json`. This is not true in general, even if the name of the model is always in the form `name` + `Model.json`. You can find the model in its example directory and change the name in the command accordingly.
 
 The result of the execution (stored in the `toolchain_output/classes` folder) will be a JSON file containing a dictionary of the equivalence classes, in the form of an array of booleans. The length of each array corresponds to the number of
 states of the original poset model. Let `classX` be the array of booleans representing the class labelled with `X`: then `classX[i] = True` if and only if the state `i` is included in the class `X`.

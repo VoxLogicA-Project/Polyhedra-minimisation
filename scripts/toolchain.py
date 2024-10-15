@@ -12,7 +12,7 @@ print("started")
 
 import json
 import subprocess
-import sys
+# import sys
 import regex as re
 import os
 import time
@@ -20,6 +20,12 @@ import time
 import resource
 import networkx as nx
 import pandas as ps
+
+import argparse
+
+cli = argparse.ArgumentParser()
+cli.add_argument("--optimise", default=0)
+cli.add_argument("--file")
 
 # Utilities
 resource.setrlimit(resource.RLIMIT_STACK, (500000000, 500000000))
@@ -42,7 +48,6 @@ def run_command(command):
 
 times = ({})
 
-
 def loadData(args):
     with open(args["poset"]) as f:
         # Load the JSON data into a dictionary
@@ -52,6 +57,7 @@ def loadData(args):
 
 def poset2mcrl2(args):
     data = args["data"]
+    optimise = args["optimise"]
     # These functions are used to encode a model into an LTS
 
     def uncover(data):
@@ -107,10 +113,15 @@ def poset2mcrl2(args):
                 # The following line is only justified if it is sure that the
                 # point is in a monochromatic upset!!!
                 # TODO: URGENT: VC: I do not understand this line at all
-                if dg.has_edge(point, dest):
+                if optimise == 1: 
+                    if dg.has_edge(point, dest):
+                        label = "tau"
+                        result.add_edge(point, dest, label=label)
+                        result.add_edge(dest, point, label=label)
+                else:
                     label = "tau"
                     result.add_edge(point, dest, label=label)
-                    result.add_edge(dest, point, label=label)                    
+                    result.add_edge(dest, point, label=label)
             else:
                 label = "chg"
                 result.add_edge(point, dest, label=label)
@@ -223,16 +234,16 @@ def lps2lts(args):
     #             args["lps"] + " " + args["lts"])
     run_command("lps2lts  --cached --threads=32 " +
                 args["lps"] + " " + args["lts"])
-    run_command("ltsconvert " + args["lts"] + " " + args["lts"] + ".dot")
-    #run_command("neato -Tpdf " + args["lts"] + ".dot" + " -o " + args["lts"] + ".pdf" )
+    # run_command("ltsconvert " + args["lts"] + " " + args["lts"] + ".dot")
+    # run_command("neato -Tpdf " + args["lts"] + ".dot" + " -o " + args["lts"] + ".pdf" )
 
 
 def ltsminimise(args):
     print("minimizing....")
     #TODO: please use a variable to hold the filenames, and use popen with an array of arguments instead of run_command
     run_command("ltsconvert -ebranching-bisim " + args["base"] + " " + args["minimised"])    
-    run_command("ltsconvert " + args["minimised"] + " " + args["minimised"] + ".dot")
-    run_command("neato -Tpdf " + args["minimised"] + ".dot" + " -o " + args["minimised"] + ".pdf" )
+    # run_command("ltsconvert " + args["minimised"] + " " + args["minimised"] + ".dot")
+    # run_command("neato -Tpdf " + args["minimised"] + ".dot" + " -o " + args["minimised"] + ".pdf" )
 
 
 def createJsonFiles(args):
@@ -358,8 +369,11 @@ def cached_execute(filename, name, fn, args):
 
 # THE GLOBAL SCRIPT STARTS HERE
 
+args = cli.parse_args()
 
-input_file = sys.argv[1]  # this is base_name.json
+optimise = args.optimise
+
+input_file = args.file  # this is base_name.json
 
 # For interactive use:
 # os.chdir("/workspaces/case-study-eta-minimization/experiments/triangle")
@@ -391,7 +405,7 @@ cached_execute("fakefile.txt", f"loadData", loadData, tmp)
 data = tmp["data"]
 
 x = cached_execute(output_dir + "/" + base_name + ".mcrl2", f"poset2mcrl2",
-                   poset2mcrl2, {"data": data, "base_name": base_name, "output_dir": output_dir})
+                   poset2mcrl2, {"data": data, "base_name": base_name, "output_dir": output_dir, "optimise": optimise})
 
 def debug():
     return nx.to_dict_of_dicts(x["lts"])
