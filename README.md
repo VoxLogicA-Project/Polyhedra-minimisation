@@ -5,10 +5,10 @@ This artifact contains all the files and scripts needed in order to reproduce th
 1. the minimisation step, where the original model is first translated into a poset, which is encoded into an LTS which is then minimised by branching equivalence minimisation provided by the mCRL2 toolset;
 2. the model checking step, where model checking is performed over the minimised model.
 
-In the follwing, we explain in detail how to reproduce results and visualise them, using the triangleRB experiment as a running example.
+In the following, we explain in detail how to reproduce results and visualise them, using the triangleRB experiment as a running example.
 
 The artifact is provided with a Dockerfile that starts a new container with all required dependencies. To start the container, it suffices to run the script 
-`run_container.sh` in the main directory.
+`run_container.sh` in the main directory. After this, one can access the repository using `cd Polyhedra-minimisation`.
 
 All the proposed experiments are contained in the `experiments` folder. All the files required to run the triangleRB example are thus contained in the `experiments/triangleRB` folder.
 
@@ -26,10 +26,15 @@ we will be able to visualise the model and its properties. Using the Property me
 
 ## Minimisation
 
+First of all, we have to compile the PolyPoProject software using `dotnet`. This is needed in order to transform a polyhedral model into a poset model. We can do so via the following commands:
+
+`cd scripts/PolyPoProject`
+`dotnet publish`
+
 Minimisation of the model is performed by the `toolchain.py` script, that takes as input a model file, performs the encoding and calls MCRL2 operations. In order to run the script, one must access the experiment folder and run it
 from command line. In our example:
 
-`cd experiments/triangleRB` \
+`cd ../../experiments/triangleRB` \
 `../../scripts/toolchain.py triangleRBModel.json`
 
 The result of the execution (stored in the `toolchain_output/classes` folder) will be a JSON file containing a dictionary of the equivalence classes, in the form of an array of booleans. The length of each array corresponds to the number of

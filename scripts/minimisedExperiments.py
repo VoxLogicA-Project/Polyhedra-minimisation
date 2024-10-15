@@ -16,7 +16,8 @@ for root, dirs, files in os.walk("experiments"):
         try:
             shutil.rmtree(root + "/" + name + "/toolchain_output")
             shutil.rmtree(root + "/" + name + "/results")
-            os.remove(root + "/" + name + "/results.json")
+            print(root + "/" + name + "result.json")
+            os.remove(root + "/" + name + "/result.json")
         except OSError as e:
             pass
 
@@ -35,13 +36,14 @@ def runExperiment(experiment):
     os.chdir("../../PolyLogicA")
     subprocess.run(f'''./bin/release/net8.0/linux-x64/PolyLogicA mazeModelMinimised.imgql''', shell=True)
     subprocess.run(f'''mv result.json ../{experimentPath}''', shell=True)
-    os.chdir("../" + experimentPath)
-    subprocess.run(f'''python3 ../../scripts/resultTransformer.py --classesFile toolchain_output/classes/jsonOutputAll.json --results result.json''', shell=True)
-    os.chdir("../..")
+    #os.chdir("../" + experimentPath)
+    os.chdir("../scripts")
+    subprocess.run(f'''python3 resultTransformer.py --classesFile ../experiments/{experiment}/toolchain_output/classes/jsonOutputAll.json --experiment {experiment} --results ../experiments/{experiment}/result.json''', shell=True)
+    os.chdir("..")
 
 # Run actual experiments
 
 runExperiment("3DMAZE_3x3x3_G1W_LC_V2")
 runExperiment("3DMAZE_3x5x3_G1W_LC_V2")
-runExperiment("3DMAZE_3x5x4_G1W_LC_V2")
-# runExperiment("3DMAZE_5x5x5_G1W_LC_V2")
+#runExperiment("3DMAZE_3x5x4_G1W_LC_V2")
+#runExperiment("3DMAZE_5x5x5_G1W_LC_V2")
